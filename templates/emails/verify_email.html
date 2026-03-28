@@ -1,0 +1,102 @@
+<!-- templates/emails/verify_email.html -->
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Verify Your Email</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background-color: #f5f5f5;
+            margin: 0;
+            padding: 0;
+        }
+        .container {
+            max-width: 600px;
+            margin: 40px auto;
+            padding: 20px;
+            background-color: #ffffff;
+            border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+        .header {
+            text-align: center;
+            padding: 20px 0;
+            border-bottom: 2px solid #f0f0f0;
+        }
+        .logo {
+            max-width: 80px;
+            margin-bottom: 15px;
+        }
+        .content {
+            padding: 30px 20px;
+        }
+        .button {
+            display: inline-block;
+            background: linear-gradient(135deg, #D4A017 0%, #B8860B 100%);
+            color: #ffffff !important;
+            text-decoration: none;
+            padding: 12px 30px;
+            border-radius: 8px;
+            font-weight: bold;
+            margin: 20px 0;
+            text-align: center;
+        }
+        .button:hover {
+            background: linear-gradient(135deg, #B8860B 0%, #9B6A0A 100%);
+        }
+        .footer {
+            text-align: center;
+            padding: 20px;
+            font-size: 12px;
+            color: #666;
+            border-top: 1px solid #f0f0f0;
+        }
+        .warning {
+            background-color: #fff3e0;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 20px 0;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            {% if site_logo %}
+                <img src="{{ site_logo }}" alt="{{ site_name }}" class="logo">
+            {% endif %}
+            <h2>Verify Your Email Address</h2>
+        </div>
+        
+        <div class="content">
+            <p>Hello <strong>{{ user.get_full_name|default:user.email }}</strong>,</p>
+            
+            <p>Thank you for registering with {{ site_name }}! Please verify your email address to complete your registration and start your application.</p>
+            
+            <div style="text-align: center;">
+                <a href="{{ verification_url }}" class="button">Verify Email Address</a>
+            </div>
+            
+            <div class="warning">
+                <strong>⚠️ This link will expire in {{ expiry_hours }} hours.</strong><br>
+                If you didn't create an account with {{ site_name }}, you can safely ignore this email.
+            </div>
+            
+            <p>If the button doesn't work, copy and paste this link into your browser:</p>
+            <p style="word-break: break-all; font-size: 12px; color: #666;">
+                {{ verification_url }}
+            </p>
+        </div>
+        
+        <div class="footer">
+            <p>&copy; {{ site_name }}. All rights reserved.</p>
+            <p>If you need assistance, contact us at <a href="mailto:{{ support_email }}">{{ support_email }}</a></p>
+        </div>
+    </div>
+</body>
+</html>
