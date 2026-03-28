@@ -64,7 +64,7 @@ THIRD_PARTY_APPS = [
     'drf_spectacular',
     'rest_framework_simplejwt',
     'django_rest_passwordreset', 
-    'rest_framework_simplejwt.token_blacklist', 
+    # 'rest_framework_simplejwt.token_blacklist', 
 
     
 ]
@@ -181,8 +181,8 @@ REST_FRAMEWORK = {
 SIMPLE_JWT = {
     'ACCESS_TOKEN_LIFETIME': timedelta(hours=24),
     'REFRESH_TOKEN_LIFETIME': timedelta(days=1),
-    'ROTATE_REFRESH_TOKENS': False,
-    'BLACKLIST_AFTER_ROTATION': True,
+    # 'ROTATE_REFRESH_TOKENS': False,
+    # 'BLACKLIST_AFTER_ROTATION': True,
     'ALGORITHM': 'HS256',
     'SIGNING_KEY': SECRET_KEY,
     'AUTH_HEADER_TYPES': ('Bearer',),
