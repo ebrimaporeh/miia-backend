@@ -1,13 +1,19 @@
 #!/bin/bash
-# build.sh
+set -e  # Exit on error
 
-echo "Installing dependencies..."
+echo "🚀 Starting build process..."
+
+# Install dependencies
+echo "📦 Installing dependencies..."
+pip install --upgrade pip setuptools wheel
 pip install -r requirements.txt
 
-echo "Collecting static files..."
+# Collect static files
+echo "📁 Collecting static files..."
 python manage.py collectstatic --noinput
 
-echo "Running migrations..."
+# Run migrations
+echo "🗄️ Running database migrations..."
 python manage.py migrate --noinput
 
-echo "Build completed!"
+echo "✅ Build completed successfully!"
