@@ -40,13 +40,17 @@ CORS_ALLOW_HEADERS = [
 ]
 
 # Update ALLOWED_HOSTS to include frontend domain
-ALLOWED_HOSTS = [
-    'localhost',
-    '127.0.0.1',
-    'http://localhost:8080',
-    'localhost:8080',
-    os.getenv('FRONTEND_URL', 'localhost:8080').replace('http://', '').replace('https://', ''),
-]
+
+# ALLOWED_HOSTS = [
+#     'localhost',
+#     '127.0.0.1',
+#     'http://localhost:8080',
+#     'localhost:8080',
+#     os.getenv('FRONTEND_URL', 'localhost:8080').replace('http://', '').replace('https://', ''),
+# ]
+ALLOWED_HOSTS = ['*']
+
+
 # Application definition
 DJANGO_APPS = [
     'django.contrib.admin',
