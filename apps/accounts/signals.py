@@ -29,14 +29,7 @@ def create_user_profile(sender, instance, created, **kwargs):
                 user=instance,
                 relationship="guardian"
             )
-            # Create application for parent
-            Application.objects.create(
-                applicant=instance,
-                status='in_progress',
-                current_step=1,
-                terms_accepted=False,
-                privacy_accepted=False
-            )
+            # No application for parents - parents are created after approval
         elif instance.role == 'staff':
             Staff.objects.create(
                 user=instance,
@@ -44,6 +37,15 @@ def create_user_profile(sender, instance, created, **kwargs):
                 department="To be assigned",
                 position="To be assigned",
                 joining_date=instance.date_joined.date()
+            )
+        elif instance.role == 'applicant':
+            # Create application for applicant
+            Application.objects.create(
+                applicant=instance,
+                status='draft',
+                current_step=1,
+                terms_accepted=False,
+                privacy_accepted=False
             )
 
 @receiver(post_save, sender=User)
@@ -62,9 +64,19 @@ def save_user_profile(sender, instance, **kwargs):
 def assign_user_group(sender, instance, created, **kwargs):
     """Assign user to appropriate group based on role"""
     if created:
-        try:
-            group = Group.objects.get(name=instance.role)
-            instance.groups.add(group)
-        except Group.DoesNotExist:
-            # Group doesn't exist yet, will be created by management command
-            pass
+        group_mapping = {
+            'admin': 'admin',
+            'teacher': 'teacher',
+            'student': 'student',
+            'parent': 'parent',
+            'staff': 'staff',
+            'applicant': 'applicant',
+        }
+        group_name = group_mapping.get(instance.role)
+        if group_name:
+            try:
+                group = Group.objects.get(name=group_name)
+                instance.groups.add(group)
+            except Group.DoesNotExist:
+                # Group doesn't exist yet, will be created by management command
+                pass

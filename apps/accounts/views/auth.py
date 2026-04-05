@@ -58,7 +58,7 @@ class RegisterView(generics.CreateAPIView):
         }
         
         # Get application if exists
-        if user.role == 'parent':
+        if user.role == 'applicant':
             from apps.applications.models import Application
             try:
                 application = Application.objects.get(applicant=user)
@@ -72,22 +72,6 @@ class RegisterView(generics.CreateAPIView):
         
         return Response(response_data, status=status.HTTP_201_CREATED)
     
-# class LogoutView(APIView):
-#     """User logout (blacklist token)"""
-#     permission_classes = [IsAuthenticated]
-    
-#     def post(self, request):
-#         try:
-#             refresh_token = request.data.get('refresh')
-#             if refresh_token:
-#                 token = RefreshToken(refresh_token)
-#                 token.blacklist()
-            
-#             logout(request)
-#             return Response({'message': 'Successfully logged out'}, status=status.HTTP_200_OK)
-#         except Exception as e:
-#             return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
-
 
 class LogoutView(APIView):
     """User logout - simple logout without token blacklisting"""

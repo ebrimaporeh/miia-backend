@@ -9,7 +9,7 @@ User = get_user_model()
 
 
 class UserProfileSerializer(serializers.ModelSerializer):
-    """Serializer for user profile"""
+    """Serializer for user profile - ONLY basic user info"""
     name = serializers.SerializerMethodField()
     firstName = serializers.CharField(source='first_name', read_only=True)
     lastName = serializers.CharField(source='last_name', read_only=True)
@@ -21,10 +21,11 @@ class UserProfileSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'email', 'name', 'firstName', 'lastName', 
             'role', 'phone', 'profile_picture', 'status', 
-            'date_joined', 'permissions'
+            'date_joined', 
         ]
         read_only_fields = ('id', 'email', 'role', 'date_joined')
     
+    # Keep these methods as they are
     def get_name(self, obj):
         return obj.get_full_name() or obj.email
     
@@ -32,23 +33,20 @@ class UserProfileSerializer(serializers.ModelSerializer):
         return 'active' if obj.is_active else 'inactive'
     
     def get_permissions(self, obj):
-        """Get all permissions for this user from groups"""
+        # Keep this method as is
         if not obj.is_authenticated:
             return []
         
-        # Get all permissions from user's groups
         perms = set()
         for group in obj.groups.all():
             for perm in group.permissions.all():
                 perms.add(perm.codename)
         
-        # If user is admin, add all permissions
         if obj.role == 'admin':
             all_perms = Permission.objects.values_list('codename', flat=True)
             perms.update(all_perms)
         
         return list(perms)
-
 
 class RoleProfileSerializer(serializers.Serializer):
     """Serializer to get role-specific profile"""
@@ -68,7 +66,6 @@ class RoleProfileSerializer(serializers.Serializer):
         
         return None
 
-
 class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
     """Custom JWT serializer that includes user data and profile"""
     username_field = "email"
@@ -82,7 +79,6 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
         token['email'] = user.email
         token['first_name'] = user.first_name
         token['last_name'] = user.last_name
-        token['permissions'] = UserProfileSerializer.get_permissions(None, user)
         
         # Add profile info to token claims if available
         if user.role == 'parent' and hasattr(user, 'parent_profile'):
@@ -137,7 +133,6 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
         
         return data
 
-
 class UserUpdateSerializer(serializers.ModelSerializer):
     """Serializer for updating user information"""
     class Meta:
@@ -166,7 +161,7 @@ class RegisterSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError({"password": "Password fields didn't match."})
         
         # Validate role
-        valid_types = ['admin', 'teacher', 'student', 'parent', 'staff']
+        valid_types = ['admin', 'teacher', 'student', 'parent', 'staff', 'applicant']
         if attrs['role'] not in valid_types:
             raise serializers.ValidationError({"role": f"Must be one of: {', '.join(valid_types)}"})
         
@@ -249,48 +244,33 @@ class UserProfileSerializer(serializers.ModelSerializer):
 
 class TeacherProfileSerializer(serializers.ModelSerializer):
     """Serializer for teacher profile"""
-    user = UserProfileSerializer(read_only=True)
-    email = serializers.EmailField(source='user.email', read_only=True)
-    first_name = serializers.CharField(source='user.first_name', read_only=True)
-    last_name = serializers.CharField(source='user.last_name', read_only=True)
+   
     
     class Meta:
         model = Teacher
-        fields = ('user', 'email', 'first_name', 'last_name', 'employee_id', 
+        fields = ( 'employee_id', 
                  'qualification', 'specialization', 'joining_date')
 
 class StudentProfileSerializer(serializers.ModelSerializer):
     """Serializer for student profile"""
-    user = UserProfileSerializer(read_only=True)
-    email = serializers.EmailField(source='user.email', read_only=True)
-    first_name = serializers.CharField(source='user.first_name', read_only=True)
-    last_name = serializers.CharField(source='user.last_name', read_only=True)
     
     class Meta:
         model = Student
-        fields = ('user', 'email', 'first_name', 'last_name', 'student_id', 
+        fields = ('student_id', 
                  'enrollment_date', 'guardian_name', 'guardian_phone', 'guardian_email')
 
 class ParentProfileSerializer(serializers.ModelSerializer):
     """Serializer for parent profile"""
-    user = UserProfileSerializer(read_only=True)
-    email = serializers.EmailField(source='user.email', read_only=True)
-    first_name = serializers.CharField(source='user.first_name', read_only=True)
-    last_name = serializers.CharField(source='user.last_name', read_only=True)
-    
+  
     class Meta:
         model = Parent
-        fields = ('user', 'email', 'first_name', 'last_name', 'occupation', 
+        fields = ( 'occupation', 
                  'relationship', 'children')
 
 class StaffProfileSerializer(serializers.ModelSerializer):
     """Serializer for staff profile"""
-    user = UserProfileSerializer(read_only=True)
-    email = serializers.EmailField(source='user.email', read_only=True)
-    first_name = serializers.CharField(source='user.first_name', read_only=True)
-    last_name = serializers.CharField(source='user.last_name', read_only=True)
-    
+   
     class Meta:
         model = Staff
-        fields = ('user', 'email', 'first_name', 'last_name', 'staff_id', 
+        fields = ( 'staff_id', 
                  'department', 'position', 'joining_date')

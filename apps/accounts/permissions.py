@@ -50,6 +50,13 @@ class IsStudent(permissions.BasePermission):
     
     def has_permission(self, request, view):
         return request.user.is_authenticated and request.user.role == 'student'
+    
+
+class IsApplicant(permissions.BasePermission):
+    """Allows access only to applicants"""
+    
+    def has_permission(self, request, view):
+        return request.user.is_authenticated and request.user.role == 'applicant'
 
 class IsParent(permissions.BasePermission):
     """Allows access only to parents"""

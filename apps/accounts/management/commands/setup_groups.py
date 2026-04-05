@@ -27,6 +27,7 @@ class Command(BaseCommand):
         student_group, _ = Group.objects.get_or_create(name='student')
         parent_group, _ = Group.objects.get_or_create(name='parent')
         staff_group, _ = Group.objects.get_or_create(name='staff')
+        applicant_group, _ = Group.objects.get_or_create(name='applicant')
         
         # Clear existing permissions
         admin_group.permissions.clear()
@@ -34,6 +35,7 @@ class Command(BaseCommand):
         student_group.permissions.clear()
         parent_group.permissions.clear()
         staff_group.permissions.clear()
+        applicant_group.permissions.clear()
         
         # Get all permissions
         all_permissions = Permission.objects.all()
@@ -140,4 +142,31 @@ class Command(BaseCommand):
                 staff_count += 1
         self.stdout.write(f'✓ Staff group: {staff_count} permissions')
         
+        # Applicant permissions (limited - only to create and view own application)
+        applicant_perms = [
+            # Application permissions
+            'application:view', 'application:create', 'application:edit', 'application:submit',
+            # Can view own profile
+            'user:view',
+            # Dashboard
+            'dashboard:view',
+        ]
+        
+        applicant_count = 0
+        for perm in applicant_perms:
+            p = self.get_permission(perm)
+            if p:
+                applicant_group.permissions.add(p)
+                applicant_count += 1
+        self.stdout.write(f'✓ Applicant group: {applicant_count} permissions')
+        
         self.stdout.write(self.style.SUCCESS('\n✓ Groups and permissions setup completed!'))
+        
+        # Print summary
+        self.stdout.write('\n📊 Group Summary:')
+        self.stdout.write(f'  - Admin: {admin_group.permissions.count()} permissions')
+        self.stdout.write(f'  - Teacher: {teacher_group.permissions.count()} permissions')
+        self.stdout.write(f'  - Student: {student_group.permissions.count()} permissions')
+        self.stdout.write(f'  - Parent: {parent_group.permissions.count()} permissions')
+        self.stdout.write(f'  - Staff: {staff_group.permissions.count()} permissions')
+        self.stdout.write(f'  - Applicant: {applicant_group.permissions.count()} permissions')

@@ -18,6 +18,7 @@ class User(AbstractUser):
         ('student', 'Student'),
         ('parent', 'Parent'),
         ('staff', 'Staff'),
+        ('applicant', 'Applicant'),
     ])
     is_active = models.BooleanField(default=False)
     phone = models.CharField(max_length=20, blank=True)
@@ -104,6 +105,14 @@ class User(AbstractUser):
             ("parent:fees:view", "Can view parent fees"),
             ("parent:fees:pay", "Can pay parent fees"),
             ("parent:attendance:view", "Can view parent attendance"),
+
+            # application management permissions
+            # 'application:view', 'application:create', 'application:edit', 'application:submit',
+            ("application:view", "Can view application"),
+            ("application:edit", "Can edit application"),
+            ("application:create", "Can create application"),
+            ("application:submit", "Can submit application"),
+            ("application:approve", "Can approve application"),
             
             # Student management permissions
             ("student:view", "Can view students"),

@@ -4,8 +4,43 @@ from django.urls import reverse
 from django.utils.html import format_html
 from django.utils.safestring import mark_safe
 from django.utils import timezone
-from django.db.models import Count, Q
-from .models import Application
+from .models import Application, ApplicantParent, ApplicantChild
+
+
+class ApplicantParentInline(admin.StackedInline):
+    """Inline display of parent information in the application"""
+    model = ApplicantParent
+    can_delete = False
+    extra = 0
+    fields = (
+        'full_name', 'email', 'phone', 'alternate_phone',
+        'address', 'occupation', 'relationship'
+    )
+    readonly_fields = fields
+    verbose_name = "Parent/Guardian Information"
+    verbose_name_plural = "Parent/Guardian Information"
+
+
+class ApplicantChildInline(admin.TabularInline):
+    """Inline display of children in the application"""
+    model = ApplicantChild
+    extra = 0
+    fields = (
+        'full_name_display', 'date_of_birth', 'gender', 
+        'has_allergies', 'medical_conditions', 'age_display'
+    )
+    readonly_fields = fields
+    can_delete = False
+    verbose_name = "Child"
+    verbose_name_plural = "Children"
+    
+    def full_name_display(self, obj):
+        return f"{obj.first_name} {obj.last_name}"
+    full_name_display.short_description = 'Full Name'
+    
+    def age_display(self, obj):
+        return obj.age or '-'
+    age_display.short_description = 'Age'
 
 
 class ApplicationFilter(admin.SimpleListFilter):
@@ -52,100 +87,30 @@ class PendingReviewFilter(admin.SimpleListFilter):
         return queryset
 
 
-class ChildrenInline(admin.TabularInline):
-    """Inline display of children in the application"""
-    model = Application.children.through
-    verbose_name = "Child"
-    verbose_name_plural = "Children"
-    extra = 0
-    fields = ['student_link', 'student_id', 'student_name', 'student_status']
-    readonly_fields = ['student_link', 'student_id', 'student_name', 'student_status']
-    can_delete = False
-    max_num = 0
-    
-    def student_link(self, obj):
-        if obj.student:
-            url = reverse('admin:accounts_student_change', args=[obj.student.id])
-            return format_html('<a href="{}">{}</a>', url, obj.student.student_id)
-        return '-'
-    student_link.short_description = 'Student'
-    
-    def student_id(self, obj):
-        return obj.student.student_id if obj.student else '-'
-    student_id.short_description = 'Student ID'
-    
-    def student_name(self, obj):
-        if obj.student:
-            return obj.student.user.get_full_name()
-        return '-'
-    student_name.short_description = 'Name'
-    
-    def student_status(self, obj):
-        if obj.student:
-            status_colors = {
-                'active': 'green',
-                'pending': 'orange',
-                'inactive': 'gray',
-                'graduated': 'blue',
-                'suspended': 'red',
-            }
-            color = status_colors.get(obj.student.status, 'gray')
-            return format_html(
-                '<span style="color: {}; font-weight: bold;">{}</span>',
-                color,
-                obj.student.status.upper()
-            )
-        return '-'
-    student_status.short_description = 'Status'
-
-
+@admin.register(Application)
 class ApplicationAdmin(admin.ModelAdmin):
     """Admin interface for Application model"""
     
-    # List view configuration
-    list_display = [
-        'id_short',
-        'applicant_link',
-        'children_count_display',
-        'parent_link',
-        'status_badge',
-        'current_step',
-        'submitted_date',
-        'review_status',
-        'days_pending'
-    ]
+    list_display = (
+        'id_short', 'applicant_link', 'parent_name', 'children_count_display',
+        'status_badge', 'submitted_date', 'review_status', 'days_pending'
+    )
     
-    list_filter = [
-        PendingReviewFilter,
-        ApplicationFilter,
-        'current_step',
-        'submitted_at',
-        'reviewed_at',
-    ]
+    list_filter = [PendingReviewFilter, ApplicationFilter, 'current_step', 'submitted_at']
     
     search_fields = [
-        'applicant__email',
-        'applicant__first_name',
-        'applicant__last_name',
-        'parent__user__email',
-        'children__user__first_name',
-        'children__user__last_name',
-        'children__student_id',
+        'applicant__email', 'applicant__first_name', 'applicant__last_name',
+        'applicant_parent__full_name', 'applicant_parent__email'
     ]
     
     readonly_fields = [
-        'id',
-        'created_at',
-        'updated_at',
-        'submitted_at',
-        'reviewed_at',
-        'reviewed_by',
-        'application_details',
+        'id', 'created_at', 'updated_at', 'submitted_at', 'reviewed_at',
+        'reviewed_by', 'application_details'
     ]
     
     fieldsets = (
         ('Application Information', {
-            'fields': ('id', 'applicant', 'parent', 'status', 'current_step')
+            'fields': ('id', 'applicant', 'status', 'current_step')
         }),
         ('Terms & Conditions', {
             'fields': ('terms_accepted', 'privacy_accepted')
@@ -168,22 +133,20 @@ class ApplicationAdmin(admin.ModelAdmin):
         })
     )
     
-    inlines = [ChildrenInline]
+    inlines = [ApplicantParentInline, ApplicantChildInline]
     
     actions = [
         'mark_as_under_review',
         'mark_as_approved',
         'mark_as_rejected',
-        'mark_as_completed',
         'send_reminder_email',
     ]
     
-    # List view customization
     def get_queryset(self, request):
         """Optimize queryset with prefetch_related"""
         return super().get_queryset(request).select_related(
-            'applicant', 'parent', 'reviewed_by'
-        ).prefetch_related('children')
+            'applicant', 'applicant_parent', 'reviewed_by'
+        ).prefetch_related('applicant_children')
     
     def id_short(self, obj):
         """Display short ID"""
@@ -193,30 +156,27 @@ class ApplicationAdmin(admin.ModelAdmin):
     
     def applicant_link(self, obj):
         """Link to the applicant user"""
-        url = reverse('admin:accounts_user_change', args=[obj.applicant.id])
-        name = obj.applicant.get_full_name() or obj.applicant.email
-        return format_html('<a href="{}">{}</a>', url, name)
+        if obj.applicant:
+            url = reverse('admin:accounts_user_change', args=[obj.applicant.id])
+            return format_html('<a href="{}">{}</a>', url, obj.applicant.email)
+        return '-'
     applicant_link.short_description = 'Applicant'
     applicant_link.admin_order_field = 'applicant__email'
     
-    def parent_link(self, obj):
-        """Link to the parent profile if exists"""
-        if obj.parent:
-            url = reverse('admin:accounts_parent_change', args=[obj.parent.id])
-            return format_html('<a href="{}">{}</a>', url, obj.parent.user.get_full_name())
+    def parent_name(self, obj):
+        """Display parent name from applicant_parent"""
+        if hasattr(obj, 'applicant_parent') and obj.applicant_parent:
+            return obj.applicant_parent.full_name
         return '-'
-    parent_link.short_description = 'Parent'
+    parent_name.short_description = 'Parent/Guardian'
     
     def children_count_display(self, obj):
-        """Display children count with link"""
-        count = obj.children.count()
+        """Display children count"""
+        count = obj.applicant_children.count()
         if count > 0:
-            url = reverse('admin:accounts_student_changelist')
-            url += f'?applications__id={obj.id}'
-            return format_html('<a href="{}">{}</a>', url, count)
+            return format_html('<span style="font-weight: bold;">{}</span>', count)
         return '0'
     children_count_display.short_description = 'Children'
-    children_count_display.admin_order_field = 'children_count'
     
     def submitted_date(self, obj):
         """Display submitted date with icon"""
@@ -293,30 +253,34 @@ class ApplicationAdmin(admin.ModelAdmin):
         details = []
         
         # Parent Info
-        if obj.parent:
+        if hasattr(obj, 'applicant_parent') and obj.applicant_parent:
+            parent = obj.applicant_parent
             details.append(f"""
                 <div style="margin-bottom: 15px;">
                     <h4 style="margin: 0 0 5px 0;">👤 Parent/Guardian</h4>
                     <div style="background: #f5f5f5; padding: 10px; border-radius: 5px;">
-                        <strong>Name:</strong> {obj.parent.user.get_full_name()}<br>
-                        <strong>Email:</strong> {obj.parent.user.email}<br>
-                        <strong>Phone:</strong> {obj.parent.phone}<br>
-                        <strong>Relationship:</strong> {obj.parent.relationship}<br>
-                        <strong>Address:</strong> {obj.parent.address}
+                        <strong>Name:</strong> {parent.full_name}<br>
+                        <strong>Email:</strong> {parent.email}<br>
+                        <strong>Phone:</strong> {parent.phone}<br>
+                        <strong>Relationship:</strong> {parent.get_relationship_display()}<br>
+                        <strong>Occupation:</strong> {parent.occupation or 'N/A'}<br>
+                        <strong>Address:</strong> {parent.address}
                     </div>
                 </div>
             """)
         
         # Children Info
-        if obj.children.exists():
+        children = obj.applicant_children.all()
+        if children.exists():
             children_html = '<div style="margin-bottom: 15px;"><h4 style="margin: 0 0 5px 0;">👶 Children</h4><div style="background: #f5f5f5; padding: 10px; border-radius: 5px;">'
-            for child in obj.children.all():
+            for child in children:
                 children_html += f"""
                     <div style="margin-bottom: 10px; padding: 8px; border-bottom: 1px solid #ddd;">
-                        <strong>{child.user.get_full_name()}</strong><br>
-                        Student ID: {child.student_id}<br>
+                        <strong>{child.first_name} {child.last_name}</strong><br>
                         Date of Birth: {child.date_of_birth}<br>
-                        Status: {child.status}
+                        Gender: {child.get_gender_display()}<br>
+                        Allergies: {'Yes' if child.has_allergies else 'No'}<br>
+                        Medical Conditions: {child.medical_conditions or 'None'}
                     </div>
                 """
             children_html += '</div></div>'
@@ -371,6 +335,8 @@ class ApplicationAdmin(admin.ModelAdmin):
     
     def mark_as_approved(self, request, queryset):
         """Approve selected applications"""
+        # Note: This only changes status, doesn't create Parent/Student
+        # For full approval with account creation, use the API
         updated = queryset.filter(status__in=['submitted', 'under_review']).update(
             status='approved',
             reviewed_at=timezone.now(),
@@ -389,29 +355,40 @@ class ApplicationAdmin(admin.ModelAdmin):
         self.message_user(request, f'{updated} application(s) rejected.')
     mark_as_rejected.short_description = 'Reject Applications'
     
-    def mark_as_completed(self, request, queryset):
-        """Mark selected applications as completed"""
-        updated = queryset.filter(status='approved').update(
-            status='completed'
-        )
-        self.message_user(request, f'{updated} application(s) marked as completed.')
-    mark_as_completed.short_description = 'Mark as Completed'
-    
     def send_reminder_email(self, request, queryset):
         """Send reminder email to applicants"""
-        # This would integrate with your email system
         count = queryset.count()
         self.message_user(request, f'Reminder email sent to {count} applicant(s).')
     send_reminder_email.short_description = 'Send Reminder Email'
+
+
+@admin.register(ApplicantParent)
+class ApplicantParentAdmin(admin.ModelAdmin):
+    """Admin interface for ApplicantParent model"""
+    list_display = ('full_name', 'email', 'phone', 'relationship', 'application_link')
+    search_fields = ('full_name', 'email', 'phone')
+    list_filter = ('relationship',)
+    readonly_fields = ('application_link',)
     
-    # Save method overrides
-    def save_model(self, request, obj, form, change):
-        """Override save to track review changes"""
-        if obj.status in ['approved', 'rejected'] and not obj.reviewed_at:
-            obj.reviewed_at = timezone.now()
-            obj.reviewed_by = request.user
-        super().save_model(request, obj, form, change)
+    def application_link(self, obj):
+        url = reverse('admin:applications_application_change', args=[obj.application.id])
+        return format_html('<a href="{}">{}</a>', url, obj.application.id)
+    application_link.short_description = 'Application'
 
 
-# Register the admin
-admin.site.register(Application, ApplicationAdmin)
+@admin.register(ApplicantChild)
+class ApplicantChildAdmin(admin.ModelAdmin):
+    """Admin interface for ApplicantChild model"""
+    list_display = ('full_name', 'date_of_birth', 'gender', 'application_link')
+    search_fields = ('first_name', 'last_name')
+    list_filter = ('gender', 'has_allergies')
+    readonly_fields = ('application_link',)
+    
+    def full_name(self, obj):
+        return f"{obj.first_name} {obj.last_name}"
+    full_name.short_description = 'Full Name'
+    
+    def application_link(self, obj):
+        url = reverse('admin:applications_application_change', args=[obj.application.id])
+        return format_html('<a href="{}">{}</a>', url, obj.application.id)
+    application_link.short_description = 'Application'
