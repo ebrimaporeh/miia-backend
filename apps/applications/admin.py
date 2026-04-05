@@ -16,7 +16,8 @@ class ApplicantParentInline(admin.StackedInline):
         'full_name', 'email', 'phone', 'alternate_phone',
         'address', 'occupation', 'relationship'
     )
-    readonly_fields = fields
+    # Remove readonly_fields to allow editing
+    # readonly_fields = fields
     verbose_name = "Parent/Guardian Information"
     verbose_name_plural = "Parent/Guardian Information"
 
@@ -26,65 +27,14 @@ class ApplicantChildInline(admin.TabularInline):
     model = ApplicantChild
     extra = 0
     fields = (
-        'full_name_display', 'date_of_birth', 'gender', 
-        'has_allergies', 'medical_conditions', 'age_display'
+        'first_name', 'last_name', 'date_of_birth', 'gender', 
+        'has_allergies', 'allergy_details', 'medical_conditions'
     )
-    readonly_fields = fields
-    can_delete = False
+    # Remove readonly_fields to allow editing
+    # readonly_fields = fields
+    can_delete = True
     verbose_name = "Child"
     verbose_name_plural = "Children"
-    
-    def full_name_display(self, obj):
-        return f"{obj.first_name} {obj.last_name}"
-    full_name_display.short_description = 'Full Name'
-    
-    def age_display(self, obj):
-        return obj.age or '-'
-    age_display.short_description = 'Age'
-
-
-class ApplicationFilter(admin.SimpleListFilter):
-    """Custom filter for application status with counts"""
-    title = 'status'
-    parameter_name = 'status'
-    
-    def lookups(self, request, model_admin):
-        statuses = Application.STATUS_CHOICES
-        counts = {}
-        for status_code, _ in statuses:
-            counts[status_code] = Application.objects.filter(status=status_code).count()
-        
-        return [
-            (status_code, f"{label} ({counts.get(status_code, 0)})")
-            for status_code, label in statuses
-        ]
-    
-    def queryset(self, request, queryset):
-        if self.value():
-            return queryset.filter(status=self.value())
-        return queryset
-
-
-class PendingReviewFilter(admin.SimpleListFilter):
-    """Filter for applications pending review"""
-    title = 'needs review'
-    parameter_name = 'needs_review'
-    
-    def lookups(self, request, model_admin):
-        return [
-            ('yes', 'Pending Review'),
-            ('submitted', 'Submitted'),
-            ('under_review', 'Under Review'),
-        ]
-    
-    def queryset(self, request, queryset):
-        if self.value() == 'yes':
-            return queryset.filter(status='submitted')
-        if self.value() == 'submitted':
-            return queryset.filter(status='submitted')
-        if self.value() == 'under_review':
-            return queryset.filter(status='under_review')
-        return queryset
 
 
 @admin.register(Application)
@@ -96,7 +46,7 @@ class ApplicationAdmin(admin.ModelAdmin):
         'status_badge', 'submitted_date', 'review_status', 'days_pending'
     )
     
-    list_filter = [PendingReviewFilter, ApplicationFilter, 'current_step', 'submitted_at']
+    list_filter = ['status', 'current_step', 'submitted_at']
     
     search_fields = [
         'applicant__email', 'applicant__first_name', 'applicant__last_name',
@@ -110,7 +60,7 @@ class ApplicationAdmin(admin.ModelAdmin):
     
     fieldsets = (
         ('Application Information', {
-            'fields': ('id', 'applicant', 'status', 'current_step')
+            'fields': ('applicant', 'status', 'current_step')
         }),
         ('Terms & Conditions', {
             'fields': ('terms_accepted', 'privacy_accepted')
@@ -335,8 +285,6 @@ class ApplicationAdmin(admin.ModelAdmin):
     
     def mark_as_approved(self, request, queryset):
         """Approve selected applications"""
-        # Note: This only changes status, doesn't create Parent/Student
-        # For full approval with account creation, use the API
         updated = queryset.filter(status__in=['submitted', 'under_review']).update(
             status='approved',
             reviewed_at=timezone.now(),
@@ -368,7 +316,8 @@ class ApplicantParentAdmin(admin.ModelAdmin):
     list_display = ('full_name', 'email', 'phone', 'relationship', 'application_link')
     search_fields = ('full_name', 'email', 'phone')
     list_filter = ('relationship',)
-    readonly_fields = ('application_link',)
+    # Remove readonly_fields to allow editing
+    # readonly_fields = ('application_link',)
     
     def application_link(self, obj):
         url = reverse('admin:applications_application_change', args=[obj.application.id])
@@ -382,7 +331,8 @@ class ApplicantChildAdmin(admin.ModelAdmin):
     list_display = ('full_name', 'date_of_birth', 'gender', 'application_link')
     search_fields = ('first_name', 'last_name')
     list_filter = ('gender', 'has_allergies')
-    readonly_fields = ('application_link',)
+    # Remove readonly_fields to allow editing
+    # readonly_fields = ('application_link',)
     
     def full_name(self, obj):
         return f"{obj.first_name} {obj.last_name}"

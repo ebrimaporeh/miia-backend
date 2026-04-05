@@ -10,6 +10,11 @@ from django_rest_passwordreset.views import ResetPasswordRequestToken
 from django_rest_passwordreset.serializers import EmailSerializer
 from apps.applications.models import Application
 from apps.accounts.email_utils import send_verification_email, verify_email_token
+from apps.applications.models import Application
+from apps.applications.tasks import send_verification_email_job
+from django.conf import settings
+
+
 
 
 from apps.accounts.serializers.auth_serializers import (
@@ -30,7 +35,6 @@ class LoginView(TokenObtainPairView):
     serializer_class = CustomTokenObtainPairSerializer
     permission_classes = [AllowAny]
 
-
 class RegisterView(generics.CreateAPIView):
     """User registration"""
     serializer_class = RegisterSerializer
@@ -41,12 +45,18 @@ class RegisterView(generics.CreateAPIView):
         serializer.is_valid(raise_exception=True)
         user = serializer.save()
         
-        # Send verification email
+        # Generate verification token
+        token = user.generate_verification_token()
+        
+        # Build verification URL
+        verification_url = f"{settings.FRONTEND_URL}/verify-email?token={token}"
+        
+        # Send verification email via background job
         try:
-            send_verification_email(user, request)
+            send_verification_email_job.delay(user.id, verification_url)
         except Exception as e:
             # Log error but don't fail registration
-            print(f"Failed to send verification email: {e}")
+            print(f"Failed to queue verification email: {e}")
         
         refresh = RefreshToken.for_user(user)
         
@@ -57,7 +67,7 @@ class RegisterView(generics.CreateAPIView):
             'message': 'User created successfully. Please check your email to verify your account.'
         }
         
-        # Get application if exists
+        # Get application if exists (for applicant role)
         if user.role == 'applicant':
             from apps.applications.models import Application
             try:
@@ -71,7 +81,8 @@ class RegisterView(generics.CreateAPIView):
                 pass
         
         return Response(response_data, status=status.HTTP_201_CREATED)
-    
+
+
 
 class LogoutView(APIView):
     """User logout - simple logout without token blacklisting"""
@@ -228,7 +239,6 @@ class VerifyEmailView(APIView):
             status=status.HTTP_200_OK
         )
 
-
 class ResendVerificationEmailView(APIView):
     """Resend verification email"""
     permission_classes = [AllowAny]
@@ -257,8 +267,21 @@ class ResendVerificationEmailView(APIView):
                 status=status.HTTP_200_OK
             )
         
-        # Send new verification email
-        send_verification_email(user, request)
+        # Generate new verification token
+        token = user.generate_verification_token()
+        
+        # Build verification URL
+        verification_url = f"{settings.FRONTEND_URL}/verify-email?token={token}"
+        
+        # Send verification email via background job
+        try:
+            send_verification_email_job.delay(user.id, verification_url)
+        except Exception as e:
+            print(f"Failed to queue verification email: {e}")
+            return Response(
+                {'error': 'Failed to send verification email. Please try again.'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
         
         return Response(
             {'message': 'Verification email sent. Please check your inbox.'},

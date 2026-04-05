@@ -4,6 +4,8 @@ from django.db import models
 from apps.core.models import TimeStampedModel
 import uuid
 from django.contrib.auth.models import Permission
+import secrets
+from django.utils import timezone
 
 class User(AbstractUser):
     """Custom user model"""
@@ -168,6 +170,14 @@ class User(AbstractUser):
 
     def __str__(self):
         return f"{self.email} - {self.role}"
+    
+    def generate_verification_token(self):
+        """Generate a unique verification token"""
+        token = secrets.token_urlsafe(32)
+        self.email_verification_token = token
+        self.email_verification_sent_at = timezone.now()
+        self.save(update_fields=['email_verification_token', 'email_verification_sent_at'])
+        return token
     
     def save(self, *args, **kwargs):
         # Auto-create username from email if not provided

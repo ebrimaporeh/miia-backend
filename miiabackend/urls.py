@@ -28,6 +28,9 @@ urlpatterns = [
         name="redoc",
     ),
 
+    # Redis Queue
+    path('admin/rq/', include('django_rq.urls')),
+
     # Authentication endpoints
     path("api/auth/", include("apps.accounts.urls.auth_urls")),
     path('api/accounts/', include('apps.accounts.urls')),

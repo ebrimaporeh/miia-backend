@@ -3,12 +3,10 @@ from rest_framework import serializers
 from django.contrib.auth import get_user_model
 from apps.applications.models import Application, ApplicantParent, ApplicantChild
 from django.utils import timezone
-from django.db import transaction
 from django.contrib.auth import get_user_model
-from apps.accounts.models import Parent, Student
 from django.utils import timezone
+from .tasks import create_parent_and_students_from_application, send_application_rejected_email
 
-from apps.accounts.utils.student_utils import generate_student_id, generate_student_email
 
 User = get_user_model()
 
@@ -139,7 +137,6 @@ class ApplicationSubmitSerializer(serializers.Serializer):
 
 
 class ApplicationReviewSerializer(serializers.Serializer):
-    """Serializer for admin review"""
     action = serializers.ChoiceField(choices=['approve', 'reject'])
     review_notes = serializers.CharField(required=False, allow_blank=True)
     rejection_reason = serializers.CharField(required=False, allow_blank=True)
@@ -148,9 +145,8 @@ class ApplicationReviewSerializer(serializers.Serializer):
         action = validated_data.get('action')
         review_notes = validated_data.get('review_notes', '')
         
-       
-        
-        User = get_user_model()
+        from django.utils import timezone
+        from django.db import transaction
         
         with transaction.atomic():
             instance.reviewed_by = self.context['request'].user
@@ -159,103 +155,21 @@ class ApplicationReviewSerializer(serializers.Serializer):
             
             if action == 'approve':
                 instance.status = 'approved'
-                self._create_parent_and_students(instance)
+                instance.save()
+                
+                # Queue background job
+                create_parent_and_students_from_application.delay(instance.id)
+                
             else:
                 instance.status = 'rejected'
                 instance.rejection_reason = validated_data.get('rejection_reason', '')
-            
-            instance.save()
+                instance.save()
+                
+                # Send rejection email
+                send_application_rejected_email.delay(
+                    instance.applicant.email,
+                    instance.applicant.get_full_name(),
+                    instance.rejection_reason
+                )
         
         return instance
-    
-    def _create_parent_and_students(self, application):
-        """Create Parent and Student records from application data"""
-        from django.contrib.auth import get_user_model
-        from apps.accounts.models import Parent, Student
-        from apps.accounts.utils.student_utils import generate_student_id, generate_student_email
-        import secrets
-        
-        User = get_user_model()
-        
-        # Get the applicant parent data
-        applicant_parent = application.applicant_parent
-        
-        # Generate a random password
-        random_password = secrets.token_urlsafe(12)
-        
-        # Create User for parent (reuse applicant's email or use parent email)
-        parent_user = User.objects.create_user(
-            username=applicant_parent.email.split('@')[0],
-            email=applicant_parent.email,
-            password=random_password,
-            first_name=applicant_parent.first_name,
-            last_name=applicant_parent.last_name,
-            role='parent',
-            is_active=True
-        )
-        
-        # Create Parent profile
-        parent = Parent.objects.create(
-            user=parent_user,
-            relationship=applicant_parent.relationship,
-            occupation=applicant_parent.occupation,
-            phone=applicant_parent.phone,
-            alternate_phone=applicant_parent.alternate_phone,
-            address=applicant_parent.address
-        )
-        
-        # Link to application
-        application.parent = parent
-        
-        # Create Student records for each child
-        created_students = []
-        for child_data in application.applicant_children.all():
-            # Create username from name
-            username = f"{child_data.first_name.lower()}.{child_data.last_name.lower()}"
-            base_username = username
-            counter = 1
-            while User.objects.filter(username=username).exists():
-                username = f"{base_username}{counter}"
-                counter += 1
-            
-            # Create User for student
-            student_user = User.objects.create_user(
-                username=username,
-                email=generate_student_email(child_data.first_name, child_data.last_name),
-                password=secrets.token_urlsafe(12),
-                first_name=child_data.first_name,
-                last_name=child_data.last_name,
-                role='student',
-                is_active=True
-            )
-            
-            # Create Student profile
-            student = Student.objects.create(
-                user=student_user,
-                student_id=generate_student_id(),
-                date_of_birth=child_data.date_of_birth,
-                gender=child_data.gender,
-                enrollment_date=timezone.now().date(),
-                status='active',
-                has_allergies=child_data.has_allergies,
-                allergy_details=child_data.allergy_details,
-                medical_conditions=child_data.medical_conditions,
-                phone=child_data.phone,
-                address=child_data.address or applicant_parent.address,
-                guardian_name=applicant_parent.full_name,
-                guardian_phone=applicant_parent.phone,
-                guardian_email=applicant_parent.email,
-                guardian_relationship=applicant_parent.relationship
-            )
-            
-            # Link to parent
-            parent.children.add(student)
-            created_students.append(student)
-        
-        # Send email with credentials (will be implemented later)
-        self._send_approval_email(parent_user, random_password, created_students)
-    
-    def _send_approval_email(self, user, password, students):
-        """Placeholder for sending approval email"""
-        # TODO: Implement email sending with background job
-        pass

@@ -68,6 +68,7 @@ THIRD_PARTY_APPS = [
     'drf_spectacular',
     'rest_framework_simplejwt',
     'django_rest_passwordreset', 
+    'django_rq',
     # 'rest_framework_simplejwt.token_blacklist', 
 
     
@@ -129,6 +130,47 @@ DATABASES = {
         'NAME': BASE_DIR / 'db.sqlite3',
     }
 }
+
+RQ_QUEUES = {
+    'default': {
+        'HOST': 'localhost',
+        'PORT': 6379,
+        'DB': 0,
+        'DEFAULT_TIMEOUT': 360,  # 6 minutes
+    },
+    'high': {
+        'HOST': 'localhost',
+        'PORT': 6379,
+        'DB': 0,
+        'DEFAULT_TIMEOUT': 120,  # 2 minutes
+    },
+    'low': {
+        'HOST': 'localhost',
+        'PORT': 6379,
+        'DB': 0,
+        'DEFAULT_TIMEOUT': 600,  # 10 minutes
+    },
+}
+
+# For production (Render.com)
+if os.environ.get('REDIS_URL'):
+    RQ_QUEUES = {
+        'default': {
+            'URL': os.environ.get('REDIS_URL'),
+            'DEFAULT_TIMEOUT': 360,
+        },
+        'high': {
+            'URL': os.environ.get('REDIS_URL'),
+            'DEFAULT_TIMEOUT': 120,
+        },
+        'low': {
+            'URL': os.environ.get('REDIS_URL'),
+            'DEFAULT_TIMEOUT': 600,
+        },
+    }
+
+RQ_SHOW_ADMIN_LINK = True
+
 
 # Custom user model
 AUTH_USER_MODEL = 'accounts.User'
