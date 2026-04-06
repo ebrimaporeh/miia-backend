@@ -69,7 +69,6 @@ THIRD_PARTY_APPS = [
     'rest_framework_simplejwt',
     'django_rest_passwordreset', 
     'django_rq',
-     'background_task',
     # 'rest_framework_simplejwt.token_blacklist', 
 
     
@@ -132,7 +131,6 @@ DATABASES = {
     }
 }
 
-BACKGROUND_TASK_RUN_EVERY = 10  # seconds
 
 
 LOGGING = {

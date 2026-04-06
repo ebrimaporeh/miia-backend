@@ -5,9 +5,8 @@ from apps.applications.models import Application, ApplicantParent, ApplicantChil
 from django.utils import timezone
 from django.contrib.auth import get_user_model
 from django.utils import timezone
-from .tasks import create_parent_and_students_from_application_task, send_application_rejected_email_task
-from django.utils import timezone
-from django.db import transaction
+import logging
+from apps.applications.utils import create_parent_and_students_from_application, send_application_rejected_email
 
 User = get_user_model()
 
@@ -52,7 +51,6 @@ class ApplicationDetailSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'status', 'current_step', 'applicant', 'applicant_email', 'applicant_name',
             'parent', 'children', 'children_count', 'is_complete',
-            'terms_accepted', 'privacy_accepted',
             'created_at', 'updated_at', 'submitted_at',
             'reviewed_by', 'reviewed_at', 'review_notes', 'rejection_reason'
         ]
@@ -83,6 +81,22 @@ class ApplicationParentUpdateSerializer(serializers.ModelSerializer):
             'full_name', 'email', 'phone', 'alternate_phone',
             'address', 'occupation', 'relationship'
         ]
+    
+    def update(self, instance, validated_data):
+        """Update the ApplicantParent instance with proper email handling"""
+        # Log the incoming data for debugging
+        logger = logging.getLogger(__name__)
+        logger.info(f"Updating ApplicantParent with data: {validated_data}")
+        
+        # Update all fields
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+        
+        instance.save()
+        
+        logger.info(f"Updated ApplicantParent: email={instance.email}, full_name={instance.full_name}")
+        
+        return instance
 
 
 class ApplicationChildCreateSerializer(serializers.ModelSerializer):
@@ -121,12 +135,6 @@ class ApplicationSubmitSerializer(serializers.Serializer):
         if instance.children_count == 0:
             raise serializers.ValidationError({"children": "At least one child is required."})
         
-        # if not instance.terms_accepted:
-        #     raise serializers.ValidationError({"terms_accepted": "You must accept the terms and conditions."})
-        
-        # if not instance.privacy_accepted:
-        #     raise serializers.ValidationError({"privacy_accepted": "You must accept the privacy policy."})
-        
         return attrs
     
     def update(self, instance, validated_data):
@@ -135,7 +143,6 @@ class ApplicationSubmitSerializer(serializers.Serializer):
         instance.submitted_at = timezone.now()
         instance.save()
         return instance
-
 
 class ApplicationReviewSerializer(serializers.Serializer):
     action = serializers.ChoiceField(choices=['approve', 'reject'])
@@ -146,7 +153,8 @@ class ApplicationReviewSerializer(serializers.Serializer):
         action = validated_data.get('action')
         review_notes = validated_data.get('review_notes', '')
         
-       
+        from django.utils import timezone
+        from django.db import transaction
         
         with transaction.atomic():
             instance.reviewed_by = self.context['request'].user
@@ -157,16 +165,16 @@ class ApplicationReviewSerializer(serializers.Serializer):
                 instance.status = 'approved'
                 instance.save()
                 
-                # Queue background job
-                create_parent_and_students_from_application_task(str(instance.id))
+                # Create parent and students (synchronous)
+                create_parent_and_students_from_application(instance)
                 
             else:
                 instance.status = 'rejected'
                 instance.rejection_reason = validated_data.get('rejection_reason', '')
                 instance.save()
                 
-                # Send rejection email
-                send_application_rejected_email_task(
+                # Send rejection email (synchronous)
+                send_application_rejected_email(
                     instance.applicant.email,
                     instance.applicant.get_full_name(),
                     instance.rejection_reason

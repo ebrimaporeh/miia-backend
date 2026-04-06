@@ -62,9 +62,7 @@ class ApplicationAdmin(admin.ModelAdmin):
         ('Application Information', {
             'fields': ('applicant', 'status', 'current_step')
         }),
-        ('Terms & Conditions', {
-            'fields': ('terms_accepted', 'privacy_accepted')
-        }),
+        
         ('Submission', {
             'fields': ('submitted_at',),
             'classes': ('collapse',)
@@ -236,16 +234,7 @@ class ApplicationAdmin(admin.ModelAdmin):
             children_html += '</div></div>'
             details.append(children_html)
         
-        # Terms
-        details.append(f"""
-            <div style="margin-bottom: 15px;">
-                <h4 style="margin: 0 0 5px 0;">📜 Terms & Conditions</h4>
-                <div style="background: #f5f5f5; padding: 10px; border-radius: 5px;">
-                    Terms Accepted: {'✅ Yes' if obj.terms_accepted else '❌ No'}<br>
-                    Privacy Accepted: {'✅ Yes' if obj.privacy_accepted else '❌ No'}
-                </div>
-            </div>
-        """)
+       
         
         # Review Notes
         if obj.review_notes:

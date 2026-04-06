@@ -8,10 +8,7 @@ from django.contrib.auth import get_user_model, logout
 from django.test import RequestFactory
 from django_rest_passwordreset.views import ResetPasswordRequestToken
 from django_rest_passwordreset.serializers import EmailSerializer
-from apps.applications.models import Application
 from apps.accounts.email_utils import send_verification_email, verify_email_token
-from apps.applications.models import Application
-from apps.applications.tasks import send_verification_email_task
 from django.conf import settings
 
 
@@ -35,6 +32,7 @@ class LoginView(TokenObtainPairView):
     serializer_class = CustomTokenObtainPairSerializer
     permission_classes = [AllowAny]
 
+
 class RegisterView(generics.CreateAPIView):
     """User registration"""
     serializer_class = RegisterSerializer
@@ -51,12 +49,8 @@ class RegisterView(generics.CreateAPIView):
         # Build verification URL
         verification_url = f"{settings.FRONTEND_URL}/verify-email?token={token}"
         
-        # Send verification email via background job
-        try:
-            send_verification_email_task(str(user.id), verification_url)
-        except Exception as e:
-            # Log error but don't fail registration
-            print(f"Failed to queue verification email: {e}")
+        # Send verification email (synchronous)
+        send_verification_email(user, verification_url)
         
         refresh = RefreshToken.for_user(user)
         
@@ -81,7 +75,6 @@ class RegisterView(generics.CreateAPIView):
                 pass
         
         return Response(response_data, status=status.HTTP_201_CREATED)
-
 
 
 class LogoutView(APIView):
@@ -275,7 +268,7 @@ class ResendVerificationEmailView(APIView):
         
         # Send verification email via background job
         try:
-            send_verification_email_task(str(user.id), verification_url)
+            send_verification_email(user, verification_url)
         except Exception as e:
             print(f"Failed to queue verification email: {e}")
             return Response(

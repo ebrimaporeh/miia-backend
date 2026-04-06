@@ -371,8 +371,7 @@ class AuthSeeder(BaseSeeder):
                 defaults={
                     'status': self.random_choice(['submitted', 'under_review', 'approved']),
                     'current_step': 6,
-                    'terms_accepted': True,
-                    'privacy_accepted': True,
+                  
                     'submitted_at': timezone.now() - timedelta(days=self.random_int(1, 30))
                 }
             )

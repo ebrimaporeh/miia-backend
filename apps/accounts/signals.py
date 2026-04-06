@@ -44,8 +44,7 @@ def create_user_profile(sender, instance, created, **kwargs):
                 applicant=instance,
                 status='draft',
                 current_step=1,
-                terms_accepted=False,
-                privacy_accepted=False
+               
             )
 
 @receiver(post_save, sender=User)

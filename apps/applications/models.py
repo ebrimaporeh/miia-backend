@@ -45,9 +45,7 @@ class Application(TimeStampedModel):
         related_name='applications'
     )
     
-    # Terms
-    # terms_accepted = models.BooleanField(default=False)
-    # privacy_accepted = models.BooleanField(default=False)
+  
     
     # Tracking
     current_step = models.IntegerField(default=1)
@@ -92,9 +90,7 @@ class Application(TimeStampedModel):
         """Check if application is ready for submission"""
         return (
             self.has_parent_info and 
-            self.children_count > 0 and 
-            self.terms_accepted and 
-            self.privacy_accepted
+            self.children_count > 0 
         )
 
 
