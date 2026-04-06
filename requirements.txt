@@ -43,6 +43,7 @@ psycopg2-binary==2.9.9
 django-rq==4.1.0
 rq==2.7.0
 redis==7.4.0
+django-background-tasks==1.2.0
 
 # Package Management
 setuptools==69.0.3

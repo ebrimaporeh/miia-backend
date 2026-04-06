@@ -2,14 +2,13 @@
 import logging
 import secrets
 import string
-import uuid
 from django.core.mail import send_mail
 from django.template.loader import render_to_string
 from django.utils.html import strip_tags
 from django.contrib.auth import get_user_model
 from django.conf import settings
 from django.db import transaction
-from background_task import background
+from django_rq import job
 from django.utils import timezone
 
 from apps.accounts.models import Parent, Student
@@ -26,11 +25,10 @@ def generate_secure_password(length=12):
     return password
 
 
-@background(schedule=0)
-def send_verification_email_task(user_id_str, verification_url):
-    """Send email verification email to user via background task"""
+@job('high', timeout=60)
+def send_verification_email_job(user_id, verification_url):
+    """Send email verification email to user via background job"""
     try:
-        user_id = uuid.UUID(user_id_str)
         user = User.objects.get(id=user_id)
         
         subject = f"Verify your email address - {settings.SITE_NAME}"
@@ -59,15 +57,14 @@ def send_verification_email_task(user_id_str, verification_url):
         return True
         
     except Exception as e:
-        logger.error(f"Failed to send verification email to {user_id_str}: {e}")
+        logger.error(f"Failed to send verification email to {user_id}: {e}")
         return False
 
 
-@background(schedule=0)
-def send_welcome_email_task(user_id_str, password=None, email=None):
+@job('high', timeout=60)
+def send_welcome_email_job(user_id, password=None, email=None):
     """Send welcome email to newly registered user"""
     try:
-        user_id = uuid.UUID(user_id_str)
         user = User.objects.get(id=user_id)
         recipient_email = email or user.email
         
@@ -97,55 +94,14 @@ def send_welcome_email_task(user_id_str, password=None, email=None):
         return True
         
     except Exception as e:
-        logger.error(f"Failed to send welcome email to {user_id_str}: {e}")
+        logger.error(f"Failed to send welcome email to {user_id}: {e}")
         return False
 
 
-def _send_application_approved_email_sync(parent_user_id_str, parent_name, children_names, password=None):
-    """Synchronous version of application approved email (not a background task)"""
-    try:
-        parent_user_id = uuid.UUID(parent_user_id_str)
-        parent_user = User.objects.get(id=parent_user_id)
-        
-        subject = f"Application Approved - Welcome to {settings.SITE_NAME}!"
-        
-        context = {
-            'user': parent_user,
-            'parent_name': parent_name,
-            'children_names': children_names,
-            'password': password,
-            'site_name': settings.SITE_NAME,
-            'login_url': f"{settings.FRONTEND_URL}/login",
-            'support_email': settings.SUPPORT_EMAIL,
-        }
-        
-        html_message = render_to_string('emails/application_approved.html', context)
-        plain_message = strip_tags(html_message)
-        
-        send_mail(
-            subject=subject,
-            message=plain_message,
-            from_email=settings.DEFAULT_FROM_EMAIL,
-            recipient_list=[parent_user.email],
-            html_message=html_message,
-            fail_silently=False,
-        )
-        
-        logger.info(f"Application approved email sent to {parent_user.email}")
-        return True
-        
-    except Exception as e:
-        logger.error(f"Failed to send approval email to {parent_user_id_str}: {e}")
-        return False
-
-
-@background(schedule=0)
-def send_application_approved_email_task(parent_user_id_str, parent_name, children_names_json, password=None):
+@job('high', timeout=180)
+def send_application_approved_email(parent_user_id, parent_name, children_names, password=None):
     """Send email to parent when application is approved"""
-    import json
     try:
-        children_names = json.loads(children_names_json)
-        parent_user_id = uuid.UUID(parent_user_id_str)
         parent_user = User.objects.get(id=parent_user_id)
         
         subject = f"Application Approved - Welcome to {settings.SITE_NAME}!"
@@ -176,12 +132,12 @@ def send_application_approved_email_task(parent_user_id_str, parent_name, childr
         return True
         
     except Exception as e:
-        logger.error(f"Failed to send approval email to {parent_user_id_str}: {e}")
+        logger.error(f"Failed to send approval email to {parent_user_id}: {e}")
         return False
 
 
-@background(schedule=0)
-def send_application_rejected_email_task(applicant_email, applicant_name, rejection_reason):
+@job('low', timeout=60)
+def send_application_rejected_email(applicant_email, applicant_name, rejection_reason):
     """Send rejection email to applicant"""
     try:
         subject = f"Application Update - {settings.SITE_NAME}"
@@ -213,11 +169,10 @@ def send_application_rejected_email_task(applicant_email, applicant_name, reject
         return False
 
 
-@background(schedule=0)
-def send_password_reset_email_task(user_id_str, reset_link):
+@job('low', timeout=60)
+def send_password_reset_email(user_id, reset_link):
     """Send password reset email to user"""
     try:
-        user_id = uuid.UUID(user_id_str)
         user = User.objects.get(id=user_id)
         
         subject = f"Password Reset Request - {settings.SITE_NAME}"
@@ -245,19 +200,16 @@ def send_password_reset_email_task(user_id_str, reset_link):
         return True
         
     except Exception as e:
-        logger.error(f"Failed to send password reset email to {user_id_str}: {e}")
+        logger.error(f"Failed to send password reset email to {user_id}: {e}")
         return False
 
 
-@background(schedule=0)
-def create_parent_and_students_from_application_task(application_id_str):
+@job('low', timeout=300)
+def create_parent_and_students_from_application(application_id):
     """Create Parent and Student records from approved application"""
     from apps.applications.models import Application
-    import json
     
     try:
-        # Convert string back to UUID
-        application_id = uuid.UUID(application_id_str)
         application = Application.objects.get(id=application_id)
         
         # Check if already processed
@@ -434,12 +386,11 @@ def create_parent_and_students_from_application_task(application_id_str):
             
             logger.info(f"Parent and {len(created_students)} students created/updated from application {application_id}")
             
-            # Send application approved email - convert children_names to JSON string for serialization
-            children_names_json = json.dumps(children_names)
-            send_application_approved_email_task(
-                str(parent_user.id),
+            # Send application approved email
+            send_application_approved_email.delay(
+                parent_user.id,
                 parent_user.get_full_name(),
-                children_names_json,
+                children_names,
                 generated_password
             )
             
@@ -454,5 +405,5 @@ def create_parent_and_students_from_application_task(application_id_str):
             }
             
     except Exception as e:
-        logger.error(f"Failed to create parent/students from application {application_id_str}: {e}", exc_info=True)
+        logger.error(f"Failed to create parent/students from application {application_id}: {e}", exc_info=True)
         raise

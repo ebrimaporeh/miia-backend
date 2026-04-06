@@ -11,7 +11,7 @@ from django_rest_passwordreset.serializers import EmailSerializer
 from apps.applications.models import Application
 from apps.accounts.email_utils import send_verification_email, verify_email_token
 from apps.applications.models import Application
-from apps.applications.tasks import send_verification_email_job
+from apps.applications.tasks import send_verification_email_task
 from django.conf import settings
 
 
@@ -53,7 +53,7 @@ class RegisterView(generics.CreateAPIView):
         
         # Send verification email via background job
         try:
-            send_verification_email_job.delay(user.id, verification_url)
+            send_verification_email_task(str(user.id), verification_url)
         except Exception as e:
             # Log error but don't fail registration
             print(f"Failed to queue verification email: {e}")
@@ -275,7 +275,7 @@ class ResendVerificationEmailView(APIView):
         
         # Send verification email via background job
         try:
-            send_verification_email_job.delay(user.id, verification_url)
+            send_verification_email_task(str(user.id), verification_url)
         except Exception as e:
             print(f"Failed to queue verification email: {e}")
             return Response(

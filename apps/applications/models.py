@@ -46,8 +46,8 @@ class Application(TimeStampedModel):
     )
     
     # Terms
-    terms_accepted = models.BooleanField(default=False)
-    privacy_accepted = models.BooleanField(default=False)
+    # terms_accepted = models.BooleanField(default=False)
+    # privacy_accepted = models.BooleanField(default=False)
     
     # Tracking
     current_step = models.IntegerField(default=1)

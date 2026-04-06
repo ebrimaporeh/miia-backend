@@ -69,6 +69,7 @@ THIRD_PARTY_APPS = [
     'rest_framework_simplejwt',
     'django_rest_passwordreset', 
     'django_rq',
+     'background_task',
     # 'rest_framework_simplejwt.token_blacklist', 
 
     
@@ -130,6 +131,31 @@ DATABASES = {
         'NAME': BASE_DIR / 'db.sqlite3',
     }
 }
+
+BACKGROUND_TASK_RUN_EVERY = 10  # seconds
+
+
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+        },
+    },
+    'root': {
+        'handlers': ['console'],
+        'level': 'INFO',
+    },
+    'loggers': {
+        'background_task': {
+            'handlers': ['console'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+    },
+}
+
 
 RQ_QUEUES = {
     'default': {

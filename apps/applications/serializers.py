@@ -5,8 +5,9 @@ from apps.applications.models import Application, ApplicantParent, ApplicantChil
 from django.utils import timezone
 from django.contrib.auth import get_user_model
 from django.utils import timezone
-from .tasks import create_parent_and_students_from_application, send_application_rejected_email
-
+from .tasks import create_parent_and_students_from_application_task, send_application_rejected_email_task
+from django.utils import timezone
+from django.db import transaction
 
 User = get_user_model()
 
@@ -120,11 +121,11 @@ class ApplicationSubmitSerializer(serializers.Serializer):
         if instance.children_count == 0:
             raise serializers.ValidationError({"children": "At least one child is required."})
         
-        if not instance.terms_accepted:
-            raise serializers.ValidationError({"terms_accepted": "You must accept the terms and conditions."})
+        # if not instance.terms_accepted:
+        #     raise serializers.ValidationError({"terms_accepted": "You must accept the terms and conditions."})
         
-        if not instance.privacy_accepted:
-            raise serializers.ValidationError({"privacy_accepted": "You must accept the privacy policy."})
+        # if not instance.privacy_accepted:
+        #     raise serializers.ValidationError({"privacy_accepted": "You must accept the privacy policy."})
         
         return attrs
     
@@ -145,8 +146,7 @@ class ApplicationReviewSerializer(serializers.Serializer):
         action = validated_data.get('action')
         review_notes = validated_data.get('review_notes', '')
         
-        from django.utils import timezone
-        from django.db import transaction
+       
         
         with transaction.atomic():
             instance.reviewed_by = self.context['request'].user
@@ -158,7 +158,7 @@ class ApplicationReviewSerializer(serializers.Serializer):
                 instance.save()
                 
                 # Queue background job
-                create_parent_and_students_from_application.delay(instance.id)
+                create_parent_and_students_from_application_task(str(instance.id))
                 
             else:
                 instance.status = 'rejected'
@@ -166,7 +166,7 @@ class ApplicationReviewSerializer(serializers.Serializer):
                 instance.save()
                 
                 # Send rejection email
-                send_application_rejected_email.delay(
+                send_application_rejected_email_task(
                     instance.applicant.email,
                     instance.applicant.get_full_name(),
                     instance.rejection_reason
