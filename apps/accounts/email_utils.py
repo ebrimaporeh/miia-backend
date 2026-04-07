@@ -42,7 +42,7 @@ def send_verification_email(user, request):
     user.save(update_fields=['email_verification_token', 'email_verification_sent_at'])
     
     # Build verification URL
-    verification_url = f"{settings.FRONTEND_URL}/verify-email?token={token}"
+    verification_url = f"{settings.FRONTEND_URL}/verify?token={token}"
     
     # Email subject and content
     subject = f"Verify your email address - {settings.SITE_NAME}"

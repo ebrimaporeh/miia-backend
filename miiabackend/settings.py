@@ -1,6 +1,8 @@
 import os
 from pathlib import Path
 from datetime import timedelta
+import logging
+import sys
 from dotenv import load_dotenv
 
 # Load environment variables
@@ -16,14 +18,15 @@ SECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure-your-secret-key-here')
 DEBUG = os.getenv('DEBUG', 'True') == 'True'
 
 
-CORS_ALLOWED_ORIGINS = [
-    "http://localhost:3000",  
-    "http://127.0.0.1:3000",
-    "http://localhost:5173", 
-    "http://127.0.0.1:5173",
-    "http://localhost:8080",  
-    "http://127.0.0.1:8080",
-]
+# CORS_ALLOWED_ORIGINS = [
+#     "http://localhost:3000",  
+#     "http://127.0.0.1:3000",
+#     "http://localhost:5173", 
+#     "http://127.0.0.1:5173",
+#     "http://localhost:8080",  
+#     "http://127.0.0.1:8080",
+# ]
+CORS_ALLOW_ALL_ORIGINS = True
 CORS_ALLOW_CREDENTIALS = True
 
 CORS_EXPOSE_HEADERS = ['Content-Type', 'X-CSRFToken']
@@ -132,27 +135,67 @@ DATABASES = {
 }
 
 
-
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
+    'formatters': {
+        'verbose': {
+            'format': '{levelname} {asctime} {module} {process:d} {thread:d} {message}',
+            'style': '{',
+        },
+        'simple': {
+            'format': '{levelname} {asctime} {module} {message}',
+            'style': '{',
+        },
+        'colored': {
+            'format': '{levelname} {asctime} {name} {message}',
+            'style': '{',
+        },
+    },
     'handlers': {
         'console': {
             'class': 'logging.StreamHandler',
+            'stream': sys.stdout,  # Print to stdout
+            'formatter': 'simple',
+            'level': 'DEBUG',
+        },
+        'file': {
+            'class': 'logging.FileHandler',
+            'filename': 'debug.log',  # Also save to file
+            'formatter': 'verbose',
+            'level': 'DEBUG',
         },
     },
     'root': {
-        'handlers': ['console'],
-        'level': 'INFO',
+        'handlers': ['console', 'file'],
+        'level': 'DEBUG',
     },
     'loggers': {
-        'background_task': {
+        # Your app's logger
+        'apps.applications': {
+            'handlers': ['console', 'file'],
+            'level': 'DEBUG',
+            'propagate': False,
+        },
+        'apps.accounts': {
+            'handlers': ['console', 'file'],
+            'level': 'DEBUG',
+            'propagate': False,
+        },
+        # Django's built-in loggers
+        'django': {
             'handlers': ['console'],
             'level': 'INFO',
             'propagate': False,
         },
+        'django.request': {
+            'handlers': ['console'],
+            'level': 'DEBUG',
+            'propagate': False,
+        },
     },
 }
+
 
 
 RQ_QUEUES = {

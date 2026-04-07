@@ -101,9 +101,9 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
         elif user.role == 'student' and hasattr(user, 'student_profile'):
             token['profile'] = {
                 'student_id': user.student_profile.student_id,
-                'date_of_birth': user.student_profile.date_of_birth,
+                # 'date_of_birth': user.student_profile.date_of_birth,
                 'gender': user.student_profile.gender,
-                'enrollment_date': user.student_profile.enrollment_date,
+                # 'enrollment_date': user.student_profile.enrollment_date,
                 'status': user.student_profile.status,
                 'performance': user.student_profile.performance,
                 'guardian_name': user.student_profile.guardian_name,

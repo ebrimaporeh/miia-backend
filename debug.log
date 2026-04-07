@@ -1,0 +1,25 @@
+INFO 2026-04-06 16:15:15,464 utils 79333 135264911488704 Application 1617d24e-5399-4df0-8ef1-38a9bac20c5d already processed
+INFO 2026-04-06 16:18:46,163 serializers 79333 135264819209920 Updating ApplicantParent with data: {'full_name': 'ebrimaporeh barry', 'email': 'barry99ebrima@gmail.com', 'phone': '+2202738367', 'alternate_phone': '+2202738367', 'address': 'Darboe Kunda', 'occupation': 'Economists', 'relationship': 'father'}
+INFO 2026-04-06 16:18:46,167 serializers 79333 135264819209920 Updated ApplicantParent: email=barry99ebrima@gmail.com, full_name=ebrimaporeh barry
+INFO 2026-04-06 16:21:32,512 utils 79823 132772089448128 Converting applicant barry99ebrima@gmail.com to parent role
+INFO 2026-04-06 16:21:32,703 utils 79823 132772089448128 Created new student user: sansi.barry4@miia.edu
+INFO 2026-04-06 16:21:32,875 utils 79823 132772089448128 Created new student user: fatima.barry@miia.edu
+INFO 2026-04-06 16:21:32,876 utils 79823 132772089448128 Parent and 2 students created/updated from application feecdb70-1962-4394-a172-4690a03e16f5
+INFO 2026-04-06 16:21:35,489 utils 79823 132772089448128 Application approved email sent to barry99ebrima@gmail.com
+INFO 2026-04-06 21:00:12,787 serializers 4387 139837894031040 Updating ApplicantParent with data: {'full_name': 'Ebrima Barry', 'email': 'eb22124166@utg.edu.gm', 'phone': '27383673454', 'alternate_phone': '2738367', 'address': 'Wellingara', 'occupation': 'Economists', 'relationship': 'father'}
+INFO 2026-04-06 21:00:12,793 serializers 4387 139837894031040 Updated ApplicantParent: email=eb22124166@utg.edu.gm, full_name=Ebrima Barry
+INFO 2026-04-06 21:02:10,288 utils 4387 139837873399488 Creating new parent account with email eb22124166@utg.edu.gm
+INFO 2026-04-06 21:02:10,289 utils 4387 139837873399488 Parent user already exists: eb22124166@utg.edu.gm
+INFO 2026-04-06 21:02:10,291 utils 4387 139837873399488 Updated existing parent profile for eb22124166@utg.edu.gm
+INFO 2026-04-06 21:02:10,531 utils 4387 139837873399488 Created new student user: sansi.barry5@miia.edu
+INFO 2026-04-06 21:02:10,534 utils 4387 139837873399488 Parent and 1 students created/updated from application 23a94eb9-70e6-40db-87f0-f436e5cc84ca
+INFO 2026-04-06 21:02:13,278 utils 4387 139837873399488 Application approved email sent to eb22124166@utg.edu.gm
+INFO 2026-04-06 21:47:23,707 serializers 11321 130760397809344 Updating ApplicantParent with data: {'full_name': 'Ebrima Barry', 'email': 'barry99ebrima@gmail.com', 'phone': '+2202738367', 'alternate_phone': '+2202738367', 'address': 'Darboe Kunda', 'occupation': 'Economists', 'relationship': 'father'}
+INFO 2026-04-06 21:47:23,713 serializers 11321 130760397809344 Updated ApplicantParent: email=barry99ebrima@gmail.com, full_name=Ebrima Barry
+INFO 2026-04-06 22:07:57,397 utils 11321 130760406202048 Converting applicant barry99ebrima@gmail.com to parent role
+INFO 2026-04-06 22:07:57,642 utils 11321 130760406202048 Created new student user: sansi.barry6@miia.edu
+INFO 2026-04-06 22:07:57,644 utils 11321 130760406202048 Parent and 1 students created/updated from application e505928d-2786-484f-ba28-b627b8c17425
+INFO 2026-04-06 22:08:01,523 utils 11321 130760406202048 Application approved email sent to barry99ebrima@gmail.com
+INFO 2026-04-06 22:09:07,278 utils 11321 130760386270912 Application e505928d-2786-484f-ba28-b627b8c17425 already processed
+INFO 2026-04-06 22:12:08,063 utils 11321 130760386270912 Application e505928d-2786-484f-ba28-b627b8c17425 already processed
+INFO 2026-04-06 22:15:51,633 utils 11321 130760386270912 Application e505928d-2786-484f-ba28-b627b8c17425 already processed

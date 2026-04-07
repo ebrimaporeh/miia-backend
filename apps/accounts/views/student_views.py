@@ -91,9 +91,11 @@ class StudentViewSet(viewsets.ModelViewSet):
     ]
     ordering_fields = [
         'student_id', 'user__first_name', 'user__last_name', 
-        'enrollment_date', 'status', 'performance'
+        'enrollment_date', 'status', 'performance' , 'created_at'
     ]
-    ordering = ['user__first_name', 'user__last_name']
+    ordering = ['created_at']
+
+    # ordering = ['user__first_name', 'user__last_name']
 
     def get_serializer_class(self):
         """Return appropriate serializer based on action and user role"""
