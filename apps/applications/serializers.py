@@ -144,6 +144,7 @@ class ApplicationSubmitSerializer(serializers.Serializer):
         instance.save()
         return instance
 
+
 class ApplicationReviewSerializer(serializers.Serializer):
     action = serializers.ChoiceField(choices=['approve', 'reject'])
     review_notes = serializers.CharField(required=False, allow_blank=True)

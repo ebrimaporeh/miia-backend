@@ -5,6 +5,9 @@ from django.contrib.auth.models import Group
 from django.contrib.auth import get_user_model
 from apps.accounts.models import Teacher, Student, Parent, Staff
 from apps.applications.models import Application
+from apps.accounts.utils.student_utils import generate_student_id
+from django.utils import timezone
+
 
 User = get_user_model()
 
@@ -21,9 +24,13 @@ def create_user_profile(sender, instance, created, **kwargs):
                 joining_date=instance.date_joined.date()
             )
         elif instance.role == 'student':
-            # Don't create student here - let the student creation flow handle it
-            # This prevents duplicate student creation
-            pass
+            # Create student profile here
+            Student.objects.create(
+                user=instance,
+                student_id=generate_student_id(),  # You'll need to import this
+                enrollment_date=timezone.now().date(),
+                status='pending'
+            )
         elif instance.role == 'parent':
             Parent.objects.create(
                 user=instance,

@@ -1,10 +1,13 @@
 # apps/accounts/urls/student_urls.py
+
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from apps.accounts.views.student_views import StudentViewSet, StudentDocumentViewSet, StudentNoteViewSet
+from apps.accounts.views.batch_enrollment_views import BatchEnrollmentViewSet
 
 router = DefaultRouter()
 router.register(r'', StudentViewSet, basename='student')
+router.register(r'batch', BatchEnrollmentViewSet, basename='batch-enrollment')
 
 # Nested routes for documents and notes
 student_document_list = StudentDocumentViewSet.as_view({

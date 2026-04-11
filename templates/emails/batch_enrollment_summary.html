@@ -1,0 +1,62 @@
+<!-- templates/emails/batch_enrollment_summary.html -->
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Batch Enrollment Summary</title>
+    <style>
+        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+        .header { background: #D4A017; color: white; padding: 20px; text-align: center; }
+        .content { padding: 20px; }
+        .success { background: #d4edda; border-left: 4px solid #28a745; padding: 10px; margin: 10px 0; }
+        .error { background: #f8d7da; border-left: 4px solid #dc3545; padding: 10px; margin: 10px 0; }
+        .summary { background: #e7f3ff; padding: 15px; border-radius: 5px; margin: 20px 0; }
+        .footer { font-size: 12px; text-align: center; margin-top: 20px; color: #666; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h2>Batch Enrollment Summary</h2>
+        </div>
+        <div class="content">
+            <p>Dear {{ parent_name }},</p>
+            
+            <div class="summary">
+                <p><strong>Total Students:</strong> {{ total_count }}</p>
+                <p><strong>Successfully Enrolled:</strong> {{ successful_count }}</p>
+                <p><strong>Failed:</strong> {{ failed_count }}</p>
+            </div>
+            
+            {% if successful_students %}
+            <h3>✅ Successfully Enrolled Students</h3>
+            {% for student in successful_students %}
+            <div class="success">
+                <p><strong>{{ student.first_name }} {{ student.last_name }}</strong></p>
+                <p>Email: {{ student.email }}</p>
+                <p>Student ID: {{ student.student_id }}</p>
+            </div>
+            {% endfor %}
+            {% endif %}
+            
+            {% if failed_students %}
+            <h3>❌ Failed Enrollments</h3>
+            {% for student in failed_students %}
+            <div class="error">
+                <p><strong>{{ student.first_name }} {{ student.last_name }}</strong></p>
+                <p>Error: {{ student.error }}</p>
+            </div>
+            {% endfor %}
+            {% endif %}
+            
+            <p>If you have any questions, please contact our support team at {{ support_email }}.</p>
+            
+            <p>Best regards,<br>{{ site_name }} Enrollment Team</p>
+        </div>
+        <div class="footer">
+            <p>&copy; {{ site_name }}. All rights reserved.</p>
+        </div>
+    </div>
+</body>
+</html>

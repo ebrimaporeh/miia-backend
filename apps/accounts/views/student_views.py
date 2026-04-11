@@ -8,12 +8,15 @@ from django.shortcuts import get_object_or_404
 from drf_spectacular.utils import extend_schema, extend_schema_view, OpenApiParameter, OpenApiExample
 from drf_spectacular.types import OpenApiTypes
 from django.db import models
+import logging
+from django.utils import timezone
+from datetime import timedelta
 
 
 from apps.accounts.models import Student, StudentDocument, StudentNote
 from apps.accounts.serializers.student_serializers import (
     StudentListSerializer, StudentDetailSerializer, StudentCreateSerializer,
-    StudentUpdateSerializer, StudentPerformanceUpdateSerializer, StudentEnrollmentSerializer,
+    StudentUpdateSerializer, StudentPerformanceUpdateSerializer, 
     StudentBulkCreateSerializer, StudentSearchSerializer, StudentDocumentSerializer,
     StudentNoteSerializer
 )
@@ -23,6 +26,10 @@ from apps.accounts.permissions import (
     CanViewStudentProgress, CanManageStudentDocuments, IsOwnerOrParentOrTeacherOrAdmin,
     CanMarkAttendance, CanViewAttendance
 )
+
+
+
+logger = logging.getLogger(__name__)
 
 
 @extend_schema_view(
@@ -180,6 +187,118 @@ class StudentViewSet(viewsets.ModelViewSet):
 
         return queryset
 
+
+    @extend_schema(
+        summary="Get student statistics",
+        description="""
+        Get comprehensive statistics about students including:
+        - Total number of students
+        - Counts by status (active, inactive, graduated, suspended, pending)
+        - Average GPA
+        - Average attendance rate
+        - New admissions this academic year
+        - Performance distribution
+        - Department distribution
+        """,
+        tags=['Students - Statistics'],
+    )
+    @action(detail=False, methods=['get'], url_path='stats')
+    def stats(self, request):
+        """
+        Get student statistics for dashboard display.
+        """
+        # Get current academic year (assuming school year starts in September)
+        now = timezone.now()
+        current_year = now.year
+        # Academic year from September to August
+        academic_year_start = timezone.datetime(current_year, 9, 1).date()
+        if now.month < 9:
+            academic_year_start = timezone.datetime(current_year - 1, 9, 1).date()
+        
+        # Base queryset
+        students = self.get_queryset()
+        
+        # Calculate statistics
+        total_students = students.count()
+        
+        # Status counts
+        status_counts = {
+            'active': students.filter(status='active').count(),
+            'inactive': students.filter(status='inactive').count(),
+            'graduated': students.filter(status='graduated').count(),
+            'suspended': students.filter(status='suspended').count(),
+            'pending': students.filter(status='pending').count(),
+        }
+        
+        # Calculate average GPA (only for students with GPA values)
+        students_with_gpa = students.filter(gpa__isnull=False)
+        avg_gpa = 0.0
+        if students_with_gpa.exists():
+            total_gpa = sum(float(s.gpa) for s in students_with_gpa if s.gpa)
+            avg_gpa = round(total_gpa / students_with_gpa.count(), 2)
+        
+        # Average attendance (placeholder - will be implemented with attendance app)
+        # For now, return 0 or calculate from related attendance records if available
+        avg_attendance = 0.0
+        
+        # New admissions this academic year
+        new_admissions = students.filter(
+            enrollment_date__gte=academic_year_start
+        ).count()
+        
+        # Performance distribution
+        performance_counts = {
+            'excellent': students.filter(performance='excellent').count(),
+            'good': students.filter(performance='good').count(),
+            'average': students.filter(performance='average').count(),
+            'needs-improvement': students.filter(performance='needs-improvement').count(),
+            'at-risk': students.filter(performance='at-risk').count(),
+        }
+        
+        # Department distribution (top 5 departments)
+        department_counts = list(
+            students.values('department')
+            .exclude(department='')
+            .annotate(count=models.Count('user'))
+            .order_by('-count')[:5]
+        )
+        
+        # Gender distribution
+        gender_counts = {
+            'male': students.filter(gender='male').count(),
+            'female': students.filter(gender='female').count(),
+            'not_specified': students.filter(gender='').count(),
+        }
+        
+        # Students added in last 30 days
+        last_30_days = now - timedelta(days=30)
+        recent_additions = students.filter(created_at__gte=last_30_days).count()
+        
+        # Calculate retention rate (active + graduated) / total
+        retention_rate = 0.0
+        if total_students > 0:
+            retention_rate = round(
+                ((status_counts['active'] + status_counts['graduated']) / total_students) * 100, 
+                1
+            )
+        
+        return Response({
+            'total': total_students,
+            'active': status_counts['active'],
+            'inactive': status_counts['inactive'],
+            'graduated': status_counts['graduated'],
+            'suspended': status_counts['suspended'],
+            'pending': status_counts['pending'],
+            'avgGPA': avg_gpa,
+            'avgAttendance': avg_attendance,
+            'newAdmissions': new_admissions,
+            'retentionRate': retention_rate,
+            'recentAdditions': recent_additions,
+            'performance': performance_counts,
+            'departments': department_counts,
+            'gender': gender_counts,
+        })
+
     @extend_schema(
         summary="Get student enrollments",
         description="Retrieve all course enrollments for a specific student.",
@@ -289,6 +408,47 @@ class StudentViewSet(viewsets.ModelViewSet):
         # This would be implemented with export functionality
         return Response({'message': f'Export to {export_format} not implemented yet'})
 
+    # @extend_schema(
+    #     summary="Enroll a new student",
+    #     description="""
+    #     Enroll a new student with parent/guardian information.
+        
+    #     This endpoint creates both a student account and a parent/guardian account,
+    #     links them together, and optionally sends email invitations using HTML templates.
+        
+    #     If the parent already exists, they will not receive new credentials.
+    #     """,
+    #     request=StudentEnrollSerializer,
+    #     responses={201: StudentEnrollResponseSerializer},
+    #     tags=['Students - Enrollment'],
+    # )
+    # @action(detail=False, methods=['post'], url_path='enroll', permission_classes=[IsAdmin])
+    # def enroll(self, request):
+    #     """
+    #     Enroll a new student with parent/guardian information.
+    #     """
+    #     serializer = StudentEnrollSerializer(data=request.data)
+        
+    #     if not serializer.is_valid():
+    #         return Response(
+    #             {'error': 'Validation failed', 'details': serializer.errors},
+    #             status=status.HTTP_400_BAD_REQUEST
+    #         )
+        
+    #     try:
+    #         result = enroll_student(serializer.validated_data)
+            
+    #         return Response(
+    #             result,
+    #             status=status.HTTP_201_CREATED
+    #         )
+            
+    #     except Exception as e:
+    #         logger.error(f"Enrollment failed: {str(e)}", exc_info=True)
+    #         return Response(
+    #             {'error': f'Failed to enroll student: {str(e)}'},
+    #             status=status.HTTP_500_INTERNAL_SERVER_ERROR
+    #         )
 
 @extend_schema_view(
     list=extend_schema(
@@ -385,3 +545,4 @@ class StudentNoteViewSet(viewsets.ModelViewSet):
         if note.author != self.request.user and not self.request.user.role == 'admin':
             self.permission_denied(self.request)
         serializer.save()
+

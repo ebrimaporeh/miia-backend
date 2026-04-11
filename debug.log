@@ -23,3 +23,62 @@ INFO 2026-04-06 22:08:01,523 utils 11321 130760406202048 Application approved em
 INFO 2026-04-06 22:09:07,278 utils 11321 130760386270912 Application e505928d-2786-484f-ba28-b627b8c17425 already processed
 INFO 2026-04-06 22:12:08,063 utils 11321 130760386270912 Application e505928d-2786-484f-ba28-b627b8c17425 already processed
 INFO 2026-04-06 22:15:51,633 utils 11321 130760386270912 Application e505928d-2786-484f-ba28-b627b8c17425 already processed
+INFO 2026-04-11 00:28:15,893 student_utils 27634 124081991046848 Enrolling student: Fugiat numquam in i Distinctio Non duci
+INFO 2026-04-11 00:28:16,069 student_utils 27634 124081991046848 Created new parent user: xafeva@mailinator.com
+INFO 2026-04-11 00:28:16,231 student_utils 27634 124081991046848 Created student user: fugiat numquam in i.distinctio non duci@miia.edu
+ERROR 2026-04-11 00:28:16,231 student_utils 27634 124081991046848 Failed to enroll student: User has no student_profile.
+Traceback (most recent call last):
+  File "/home/ebrimaporeh/workspace/miiabackend/apps/accounts/utils/student_utils.py", line 290, in enroll_student
+    student_profile = student_user.student_profile
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/ebrimaporeh/workspace/miiabackend/venv/lib/python3.13/site-packages/django/db/models/fields/related_descriptors.py", line 492, in __get__
+    raise self.RelatedObjectDoesNotExist(
+    ...<2 lines>...
+    )
+apps.accounts.models.User.student_profile.RelatedObjectDoesNotExist: User has no student_profile.. Did you mean: 'parent_profile'?
+ERROR 2026-04-11 00:28:16,234 student_views 27634 124081991046848 Enrollment failed: User has no student_profile.
+Traceback (most recent call last):
+  File "/home/ebrimaporeh/workspace/miiabackend/apps/accounts/views/student_views.py", line 440, in enroll
+    result = enroll_student(serializer.validated_data)
+  File "/home/ebrimaporeh/workspace/miiabackend/apps/accounts/utils/student_utils.py", line 290, in enroll_student
+    student_profile = student_user.student_profile
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/ebrimaporeh/workspace/miiabackend/venv/lib/python3.13/site-packages/django/db/models/fields/related_descriptors.py", line 492, in __get__
+    raise self.RelatedObjectDoesNotExist(
+    ...<2 lines>...
+    )
+apps.accounts.models.User.student_profile.RelatedObjectDoesNotExist: User has no student_profile.. Did you mean: 'parent_profile'?
+INFO 2026-04-11 07:06:30,681 batch_enrollment_views 37807 127996447573696 Parent processed: john.smith@example.com (new: False)
+ERROR 2026-04-11 07:06:30,855 batch_enrollment_views 37807 127996447573696 Failed to enroll student #1: User has no student_profile.
+ERROR 2026-04-11 07:06:31,008 batch_enrollment_views 37807 127996447573696 Failed to enroll student #2: User has no student_profile.
+ERROR 2026-04-11 07:06:31,159 batch_enrollment_views 37807 127996447573696 Failed to enroll student #3: User has no student_profile.
+ERROR 2026-04-11 07:06:31,159 batch_enrollment_views 37807 127996447573696 Parent creation failed: 'Parent' object has no attribute 'id'
+INFO 2026-04-11 07:12:50,349 batch_enrollment_views 38428 133410945234624 Parent processed: john.smith.parent@miia.edu (new: True)
+ERROR 2026-04-11 07:12:50,507 batch_enrollment_views 38428 133410945234624 Failed to enroll student #1: User has no student_profile.
+ERROR 2026-04-11 07:12:50,662 batch_enrollment_views 38428 133410945234624 Failed to enroll student #2: User has no student_profile.
+ERROR 2026-04-11 07:12:50,824 batch_enrollment_views 38428 133410945234624 Failed to enroll student #3: User has no student_profile.
+INFO 2026-04-11 07:18:25,124 batch_enrollment_views 38750 135137097414336 Parent processed: john.smith.parent1@miia.edu (new: True)
+INFO 2026-04-11 07:18:30,322 batch_enrollment_views 38750 135137097414336 Successfully enrolled student: emma.smith@miia.edu
+INFO 2026-04-11 07:18:36,764 batch_enrollment_views 38750 135137097414336 Successfully enrolled student: liam.smith@miia.edu
+INFO 2026-04-11 07:18:41,677 batch_enrollment_views 38750 135137097414336 Successfully enrolled student: olivia.smith@miia.edu
+INFO 2026-04-11 07:52:57,066 batch_enrollment_views 38750 135137072584384 Parent processed: numquam.saepe saepe.parent@miia.edu (new: True)
+INFO 2026-04-11 07:53:00,627 batch_enrollment_views 38750 135137072584384 Successfully enrolled student: iure alias in quis a.earum suscipit eius@miia.edu
+INFO 2026-04-11 08:05:03,600 batch_enrollment_views 38750 135137097414336 Parent processed: quia.voluptas perfer.parent@miia.edu (new: True)
+INFO 2026-04-11 08:05:07,454 batch_enrollment_views 38750 135137097414336 Successfully enrolled student: nihil eligendi cupid.voluptas omnis totam@miia.edu
+INFO 2026-04-11 08:06:46,000 batch_enrollment_views 38750 135137072584384 Parent processed: quia.voluptas perfer.parent1@miia.edu (new: True)
+INFO 2026-04-11 08:06:49,972 batch_enrollment_views 38750 135137072584384 Successfully enrolled student: nihil eligendi cupid.voluptas omnis totam1@miia.edu
+INFO 2026-04-11 08:07:32,868 batch_enrollment_views 38750 135137097414336 Parent processed: quia.voluptas perfer.parent2@miia.edu (new: True)
+INFO 2026-04-11 08:07:36,755 batch_enrollment_views 38750 135137097414336 Successfully enrolled student: nihil eligendi cupid.voluptas omnis totam2@miia.edu
+INFO 2026-04-11 08:13:36,594 batch_enrollment_views 38750 135137080977088 Parent processed: perspiciatis.consec.parent@miia.edu (new: True)
+INFO 2026-04-11 08:13:42,953 batch_enrollment_views 38750 135137080977088 Successfully enrolled student: sint voluptates id c.doloribus rem non en@miia.edu
+INFO 2026-04-11 08:13:49,492 batch_enrollment_views 38750 135137080977088 Successfully enrolled student: gdttr.ytryt@miia.edu
+INFO 2026-04-11 08:17:20,970 batch_enrollment_views 38750 135137080977088 Parent processed: blanditiis.nihil sed.parent@miia.edu (new: True)
+INFO 2026-04-11 08:17:31,186 batch_enrollment_views 38750 135137080977088 Successfully enrolled student: possimus magnam est.velit quos ut quidem@miia.edu
+INFO 2026-04-11 08:17:34,668 batch_enrollment_views 38750 135137080977088 Successfully enrolled student: eiusmod maiores dolo.vel distinctio illo@miia.edu
+INFO 2026-04-11 08:17:37,984 batch_enrollment_views 38750 135137080977088 Successfully enrolled student: consectetur iste ac.molestias consectetu@miia.edu
+INFO 2026-04-11 08:19:44,612 batch_enrollment_views 38750 135137080977088 Parent processed: ebrima.barry.parent@miia.edu (new: True)
+INFO 2026-04-11 08:19:50,349 batch_enrollment_views 38750 135137080977088 Successfully enrolled student: sansi.darboe@miia.edu
+INFO 2026-04-11 08:32:06,961 batch_enrollment_views 41385 125892109002432 Parent processed: barry99ebrima@gmail.com (new: True)
+INFO 2026-04-11 08:32:12,777 batch_enrollment_views 41385 125892109002432 Successfully enrolled student: sansi.bah@miia.edu
+INFO 2026-04-11 13:48:27,088 batch_enrollment_views 53823 136647904589504 Parent processed: barry99ebrima@gmail.com (new: False)
+INFO 2026-04-11 13:48:29,116 batch_enrollment_views 53823 136647904589504 Successfully enrolled student: qui possimus omnis.dolor ab quia quia i@miia.edu

@@ -6,6 +6,8 @@ import uuid
 from django.contrib.auth.models import Permission
 import secrets
 from django.utils import timezone
+from datetime import date
+
 
 class User(AbstractUser):
     """Custom user model"""
@@ -251,7 +253,7 @@ class Student(models.Model):
     gender = models.CharField(max_length=10, choices=[
         ('male', 'Male'),
         ('female', 'Female'),
-    ], blank=True)
+    ], blank=True, default='male')
 
     parent = models.ForeignKey(
         'Parent',
@@ -272,6 +274,8 @@ class Student(models.Model):
     #     blank=True,
     #     related_name='students'
     # )
+
+    gpa = models.DecimalField(max_digits=4, decimal_places=2, null=True, blank=True)
     
     # Performance tracking
     performance = models.CharField(
@@ -376,7 +380,6 @@ class Student(models.Model):
     def age(self):
         """Calculate age from date of birth"""
         if self.date_of_birth:
-            from datetime import date
             today = date.today()
             return today.year - self.date_of_birth.year - (
                 (today.month, today.day) < (self.date_of_birth.month, self.date_of_birth.day)
@@ -399,10 +402,7 @@ class Student(models.Model):
         """Placeholder - will be implemented with grades app"""
         return 0
     
-    @property
-    def gpa(self):
-        """Placeholder - will be implemented with grades app"""
-        return 0.0
+   
     
     @property
     def parent_name(self):

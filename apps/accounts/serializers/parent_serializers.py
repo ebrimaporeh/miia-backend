@@ -82,6 +82,31 @@ class ParentProfileSerializer(serializers.ModelSerializer):
             return None
 
 
+class ParentListSerializer(serializers.ModelSerializer):
+    """Serializer for listing parents (admin view)"""
+    id = serializers.UUIDField(source='user.id', read_only=True)
+    first_name = serializers.CharField(source='user.first_name', read_only=True)
+    last_name = serializers.CharField(source='user.last_name', read_only=True)
+    email = serializers.EmailField(source='user.email', read_only=True)
+    children_count = serializers.SerializerMethodField()
+    created_at = serializers.DateTimeField(source='user.date_joined', read_only=True)
+    
+    class Meta:
+        model = Parent
+        fields = [
+            'id',
+            'first_name',
+            'last_name',
+            'email',
+            'phone',
+            'relationship',
+            'children_count',
+            'created_at',
+        ]
+    
+    def get_children_count(self, obj):
+        return obj.children.count()
+
 class ParentChildSerializer(serializers.ModelSerializer):
     """Simplified serializer for parent viewing children"""
     id = serializers.UUIDField(source='user.id', read_only=True)
@@ -251,7 +276,6 @@ class ParentChildCreateSerializer(serializers.ModelSerializer):
         )
         
         return student
-
 
 
 class ParentChildUpdateSerializer(serializers.ModelSerializer):

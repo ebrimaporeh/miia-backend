@@ -1,0 +1,57 @@
+<!-- templates/emails/student_enrollment_confirmation.html -->
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Welcome to {{ site_name }}</title>
+    <style>
+        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+        .header { background: #D4A017; color: white; padding: 20px; text-align: center; }
+        .content { padding: 20px; }
+        .credentials { background: #f5f5f5; padding: 15px; border-radius: 5px; margin: 20px 0; }
+        .button { background: #D4A017; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; display: inline-block; }
+        .footer { font-size: 12px; text-align: center; margin-top: 20px; color: #666; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h2>Welcome to {{ site_name }}, {{ student_name }}!</h2>
+        </div>
+        <div class="content">
+            <p>Dear {{ student_name }},</p>
+            
+            <p>Welcome to {{ site_name }} International School! Your enrollment has been successfully completed.</p>
+            
+            <div class="credentials">
+                <h3>Your Account Details:</h3>
+                <p><strong>Email:</strong> {{ student_email }}<br>
+                <strong>Temporary Password:</strong> {{ student_password }}<br>
+                <strong>Student ID:</strong> {{ student_id }}</p>
+                <p><strong>Please change your password after logging in for the first time.</strong></p>
+            </div>
+            
+            <div style="text-align: center; margin: 30px 0;">
+                <a href="{{ login_url }}" class="button">Login to Your Student Portal</a>
+            </div>
+            
+            <p>Once logged in, you can:</p>
+            <ul>
+                <li>Access your learning materials</li>
+                <li>Check your class schedule</li>
+                <li>Submit assignments</li>
+                <li>View your grades and progress</li>
+                <li>Communicate with your teachers</li>
+            </ul>
+            
+            <p>If you have any questions, please contact our support team at {{ support_email }}.</p>
+            
+            <p>Best regards,<br>{{ site_name }} Enrollment Team</p>
+        </div>
+        <div class="footer">
+            <p>&copy; {{ site_name }}. All rights reserved.</p>
+        </div>
+    </div>
+</body>
+</html>

@@ -1,0 +1,72 @@
+<!-- templates/emails/enrollment_confirmation.html -->
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Enrollment Confirmation</title>
+    <style>
+        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+        .header { background: #D4A017; color: white; padding: 20px; text-align: center; }
+        .content { padding: 20px; }
+        .credentials { background: #f5f5f5; padding: 15px; border-radius: 5px; margin: 20px 0; }
+        .button { background: #D4A017; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; display: inline-block; }
+        .footer { font-size: 12px; text-align: center; margin-top: 20px; color: #666; }
+        .student-info { border-left: 3px solid #D4A017; padding-left: 15px; margin: 15px 0; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h2>Welcome to {{ site_name }}!</h2>
+        </div>
+        <div class="content">
+            <p>Dear {{ parent_name }},</p>
+            
+            <p>Your child <strong>{{ student_name }}</strong> has been successfully enrolled at {{ site_name }} International School.</p>
+            
+            <div class="student-info">
+                <h3>Student Details:</h3>
+                <p><strong>Name:</strong> {{ student_name }}<br>
+                <strong>Student ID:</strong> {{ student_id }}<br>
+                <strong>Enrollment Date:</strong> {{ enrollment_date }}<br>
+                <strong>Grade/Department:</strong> {{ department }}</p>
+            </div>
+            
+            <div class="credentials">
+                <h3>Your Parent Portal Account:</h3>
+                <p><strong>Email:</strong> {{ parent_email }}<br>
+                <strong>Temporary Password:</strong> {{ parent_password }}</p>
+                <p>Please change your password after logging in for the first time.</p>
+            </div>
+            
+            <div class="credentials">
+                <h3>Student Account:</h3>
+                <p><strong>Email:</strong> {{ student_email }}<br>
+                <strong>Temporary Password:</strong> {{ student_password }}</p>
+                <p>Please share these credentials with your child and have them change their password upon first login.</p>
+            </div>
+            
+            <div style="text-align: center; margin: 30px 0;">
+                <a href="{{ login_url }}" class="button">Login to Your Account</a>
+            </div>
+            
+            <p>Through your parent portal, you can:</p>
+            <ul>
+                <li>Track your child's academic progress</li>
+                <li>View attendance records</li>
+                <li>Communicate with teachers</li>
+                <li>Make fee payments</li>
+                <li>Access school announcements</li>
+            </ul>
+            
+            <p>If you have any questions, please contact our support team at {{ support_email }}.</p>
+            
+            <p>Best regards,<br>{{ site_name }} Enrollment Team</p>
+        </div>
+        <div class="footer">
+            <p>&copy; {{ site_name }}. All rights reserved.</p>
+        </div>
+    </div>
+</body>
+</html>

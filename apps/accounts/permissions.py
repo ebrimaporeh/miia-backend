@@ -1,5 +1,6 @@
 # apps/accounts/permissions.py
 from rest_framework import permissions
+from apps.accounts.models import Parent
 
 class BasePermission(permissions.BasePermission):
     """Base permission class with helper methods"""
@@ -44,6 +45,36 @@ class IsTeacher(permissions.BasePermission):
     
     def has_permission(self, request, view):
         return request.user.is_authenticated and request.user.role == 'teacher'
+
+
+class IsParentOrAdmin(permissions.BasePermission):
+    """
+    Custom permission to allow access to parents and admins.
+    - Parents can only access their own data
+    - Admins can access all data
+    """
+    
+    def has_permission(self, request, view):
+        # Allow if user is authenticated and is either parent or admin
+        return (request.user and request.user.is_authenticated and 
+                (request.user.role == 'parent' or request.user.role == 'admin'))
+    
+    def has_object_permission(self, request, view, obj):
+        # For object-level permissions
+        if request.user.role == 'admin':
+            return True
+        
+        # Parents can only access their own children
+        if request.user.role == 'parent':
+            # Get the parent profile
+            try:
+                parent = Parent.objects.get(user=request.user)
+                # Check if the student belongs to this parent
+                return obj.parent_id == parent.id
+            except Parent.DoesNotExist:
+                return False
+        
+        return False
 
 class IsStudent(permissions.BasePermission):
     """Allows access only to students"""

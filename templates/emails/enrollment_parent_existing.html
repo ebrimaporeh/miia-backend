@@ -1,0 +1,52 @@
+<!-- templates/emails/enrollment_parent_existing.html -->
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>New Child Enrollment Confirmation</title>
+    <style>
+        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+        .header { background: #D4A017; color: white; padding: 20px; text-align: center; }
+        .content { padding: 20px; }
+        .button { background: #D4A017; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; display: inline-block; }
+        .footer { font-size: 12px; text-align: center; margin-top: 20px; color: #666; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h2>New Child Enrollment Confirmation</h2>
+        </div>
+        <div class="content">
+            <p>Dear {{ parent_name }},</p>
+            
+            <p>Your child <strong>{{ student_name }}</strong> has been successfully enrolled at {{ site_name }} International School.</p>
+            
+            <h3>Student Details:</h3>
+            <p><strong>Name:</strong> {{ student_name }}<br>
+            <strong>Student ID:</strong> {{ student_id }}<br>
+            <strong>Enrollment Date:</strong> {{ enrollment_date }}<br>
+            <strong>Grade/Department:</strong> {{ department }}</p>
+            
+            <h3>Student Account:</h3>
+            <p><strong>Email:</strong> {{ student_email }}<br>
+            <strong>Temporary Password:</strong> {{ student_password }}</p>
+            <p>Please share these credentials with your child and have them change their password upon first login.</p>
+            
+            <div style="text-align: center; margin: 30px 0;">
+                <a href="{{ login_url }}" class="button">Go to Parent Portal</a>
+            </div>
+            
+            <p>You can now view your new child's progress alongside your other children in your parent portal.</p>
+            
+            <p>If you have any questions, please contact our support team at {{ support_email }}.</p>
+            
+            <p>Best regards,<br>{{ site_name }} Enrollment Team</p>
+        </div>
+        <div class="footer">
+            <p>&copy; {{ site_name }}. All rights reserved.</p>
+        </div>
+    </div>
+</body>
+</html>

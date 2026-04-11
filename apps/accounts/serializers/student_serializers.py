@@ -5,9 +5,7 @@ from apps.accounts.models import Student, GradeLevel, StudentDocument, StudentNo
 from apps.accounts.serializers.auth_serializers import UserProfileSerializer, UserUpdateSerializer
 from apps.accounts.utils.student_utils import (
     create_student,
-    generate_student_email,
-    generate_student_id,
-    reset_student_password
+
 )
 from django.db import transaction
 
@@ -438,17 +436,6 @@ class StudentPerformanceUpdateSerializer(serializers.ModelSerializer):
         fields = ['performance', 'status', 'advisor', 'notes']
 
 
-class StudentEnrollmentSerializer(serializers.Serializer):
-    """Serializer for enrollment operations"""
-    student_ids = serializers.ListField(
-        child=serializers.UUIDField(),
-        allow_empty=False
-    )
-    action = serializers.ChoiceField(choices=['enroll', 'withdraw', 'suspend', 'activate'])
-    reason = serializers.CharField(required=False, allow_blank=True)
-    effective_date = serializers.DateField(required=False)
-
-
 class StudentSearchSerializer(serializers.Serializer):
     """Serializer for student search/filter parameters"""
     query = serializers.CharField(required=False, allow_blank=True)
@@ -472,3 +459,92 @@ class StudentSearchSerializer(serializers.Serializer):
     enrollment_date_to = serializers.DateField(required=False)
     has_guardian = serializers.BooleanField(required=False)
     has_medical_info = serializers.BooleanField(required=False)
+
+
+class StudentEnrollmentItemSerializer(serializers.Serializer):
+    """Serializer for individual student in batch enrollment"""
+    first_name = serializers.CharField(max_length=150)
+    last_name = serializers.CharField(max_length=150)
+    date_of_birth = serializers.DateField(required=False, allow_null=True)
+    gender = serializers.ChoiceField(choices=['male', 'female'], required=False, allow_blank=True)
+    department = serializers.CharField(max_length=100, required=False, allow_blank=True)
+    phone = serializers.CharField(max_length=20, required=False, allow_blank=True)
+    has_allergies = serializers.BooleanField(default=False)
+    allergy_details = serializers.CharField(required=False, allow_blank=True)
+    medical_conditions = serializers.CharField(required=False, allow_blank=True)
+    guardian_relationship = serializers.ChoiceField(
+        choices=['mother', 'father', 'uncle', 'aunt', 'grandparent', 'brother', 'sister', 'guardian', 'other'],
+        required=False,
+        allow_null=True,
+        allow_blank=True
+    )
+
+class BatchEnrollmentSerializer(serializers.Serializer):
+    """Serializer for batch student enrollment"""
+    # Parent can be either existing or new
+    parent_email = serializers.EmailField(required=False, allow_null=True)
+    
+    # New parent fields (required if parent_email not provided)
+    guardian_name = serializers.CharField(max_length=300, required=False, allow_blank=True)
+    guardian_email = serializers.EmailField(required=False, allow_blank=True)
+    guardian_phone = serializers.CharField(max_length=20, required=False, allow_blank=True)
+    guardian_relationship = serializers.ChoiceField(
+        choices=['mother', 'father', 'uncle', 'aunt', 'grandparent', 'brother', 'sister', 'guardian', 'other'],
+        required=False,
+        allow_blank=True
+    )
+    address = serializers.CharField(required=False, allow_blank=True)
+    
+    # Students list
+    students = StudentEnrollmentItemSerializer(many=True, min_length=1)
+    
+    # Options
+    send_invitation = serializers.BooleanField(default=True)
+    
+    def validate(self, data):
+        """Validate parent information"""
+        parent_email = data.get('parent_email')
+        guardian_email = data.get('guardian_email', '')
+        guardian_name = data.get('guardian_name', '')
+        guardian_phone = data.get('guardian_phone', '')
+        guardian_relationship = data.get('guardian_relationship', '')
+        
+        if parent_email:
+            # Validate that parent exists
+            from django.contrib.auth import get_user_model
+            User = get_user_model()
+            if not User.objects.filter(email=parent_email, role='parent').exists():
+                raise serializers.ValidationError({
+                    'parent_email': f'Parent with email {parent_email} does not exist'
+                })
+        else:
+            # New parent validation - EMAIL IS REQUIRED
+            if not guardian_email:
+                raise serializers.ValidationError({
+                    'guardian_email': 'Guardian email is required when creating a new parent'
+                })
+            if not guardian_name:
+                raise serializers.ValidationError({
+                    'guardian_name': 'Guardian name is required when creating a new parent'
+                })
+            if not guardian_phone:
+                raise serializers.ValidationError({
+                    'guardian_phone': 'Guardian phone is required when creating a new parent'
+                })
+            if not guardian_relationship:
+                raise serializers.ValidationError({
+                    'guardian_relationship': 'Guardian relationship is required when creating a new parent'
+                })
+        
+        return data
+
+class BatchEnrollmentResponseSerializer(serializers.Serializer):
+    """Response serializer for batch enrollment"""
+    status = serializers.CharField()
+    total = serializers.IntegerField()
+    successful = serializers.IntegerField()
+    failed = serializers.IntegerField()
+    parent = serializers.DictField(required=False)
+    successful_enrollments = serializers.ListField(child=serializers.DictField())
+    failed_enrollments = serializers.ListField(child=serializers.DictField())
+    email_sent = serializers.BooleanField(default=False)
