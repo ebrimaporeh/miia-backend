@@ -16,6 +16,7 @@ class User(AbstractUser):
     is_email_verified = models.BooleanField(default=False) 
     email_verification_token = models.CharField(max_length=255, blank=True, null=True)
     email_verification_sent_at = models.DateTimeField(blank=True, null=True)
+    address = models.CharField(max_length=100, blank=True, null=True)
     role = models.CharField(max_length=20, choices=[
         ('admin', 'Admin'),
         ('teacher', 'Teacher'),
@@ -26,7 +27,7 @@ class User(AbstractUser):
     ])
     is_active = models.BooleanField(default=False)
     phone = models.CharField(max_length=20, blank=True)
-    profile_picture = models.ImageField(upload_to='profiles/', null=True, blank=True)
+    avatar = models.ImageField(upload_to='profiles/', null=True, blank=True)
     
     USERNAME_FIELD = 'email'
     REQUIRED_FIELDS = ['username', 'first_name', 'last_name']
@@ -374,7 +375,7 @@ class Student(models.Model):
     @property
     def avatar(self):
         """Match frontend's avatar field"""
-        return self.user.profile_picture.url if self.user.profile_picture else None
+        return self.user.avatar.url if self.user.avatar else None
     
     @property
     def age(self):
@@ -467,10 +468,55 @@ class StudentNote(models.Model):
 
 class Teacher(models.Model):
     """Teacher profile"""
+
+    DEPARTMENT_CHOICES = [
+        # Islamic Studies
+        ('quran', 'Qur’an Memorization (Hifz)'),
+        ('tajweed', 'Tajweed'),
+        ('islamic_studies', 'Islamic Studies'),
+        ('fiqh', 'Fiqh'),
+        ('aqeedah', 'Aqeedah'),
+
+        # Academic / Conventional
+        ('english', 'English'),
+        ('mathematics', 'Mathematics'),
+        ('science', 'Science'),
+        ('social_studies', 'Social Studies'),
+
+        # Administration / Support
+        ('administration', 'Administration'),
+        ('boarding', 'Boarding / Student Affairs'),
+    ]
+
+    POSITION_CHOICES = [
+        ('ustadh', 'Ustadh (Teacher)'),
+        ('ustadha', 'Ustadha (Female Teacher)'),
+        ('senior_teacher', 'Senior Teacher'),
+        ('head_of_department', 'Head of Department'),
+        ('principal', 'Principal'),
+        ('vice_principal', 'Vice Principal'),
+        ('boarding_master', 'Boarding Master'),
+        ('boarding_mistress', 'Boarding Mistress'),
+    ]
+
     user = models.OneToOneField(User, on_delete=models.CASCADE, primary_key=True, related_name='teacher_profile')
     employee_id = models.CharField(max_length=50, unique=True)
     qualification = models.CharField(max_length=255)
     specialization = models.CharField(max_length=255)
+    department = models.CharField(
+        max_length=50,
+        choices=DEPARTMENT_CHOICES,
+        blank=True,
+        null=True
+    )
+
+    position = models.CharField(
+        max_length=50,
+        choices=POSITION_CHOICES,
+        blank=True,
+        null=True
+    )
+
     joining_date = models.DateField()
     
     class Meta:
@@ -484,6 +530,76 @@ class Teacher(models.Model):
     
     def __str__(self):
         return f"{self.user.get_full_name()} - {self.employee_id}"
+    
+    @property
+    def department_display(self):
+        return self.get_department_display()
+
+    @property
+    def position_display(self):
+        return self.get_position_display()
+
+
+class Admin(models.Model):
+    """
+    Admin profile - minimal but extensible
+    Linked directly to User with role='admin'
+    """
+
+    user = models.OneToOneField(
+        User,
+        on_delete=models.CASCADE,
+        primary_key=True,
+        related_name='admin_profile'
+    )
+
+    # Optional organizational fields (can expand later)
+    department = models.CharField(max_length=255, blank=True)
+    position = models.CharField(max_length=255, blank=True)
+
+    # Access level (useful for multi-admin systems)
+    ACCESS_LEVEL_CHOICES = [
+        ('super', 'Super Admin'),
+        ('system', 'System Admin'),
+        ('academic', 'Academic Admin'),
+        ('finance', 'Finance Admin'),
+        ('staff', 'Staff Admin'),
+    ]
+    access_level = models.CharField(
+        max_length=20,
+        choices=ACCESS_LEVEL_CHOICES,
+        default='system'
+    )
+
+    # Tracking
+    last_login_ip = models.GenericIPAddressField(null=True, blank=True)
+    last_active = models.DateTimeField(null=True, blank=True)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = 'admins'
+        permissions = [
+            ("can_manage_system", "Can manage system settings"),
+            ("can_manage_users", "Can manage all users"),
+            ("can_view_audit_logs", "Can view audit logs"),
+            ("can_manage_permissions", "Can manage permissions"),
+        ]
+
+    def __str__(self):
+        return f"{self.user.get_full_name()} - Admin"
+
+    @property
+    def name(self):
+        return self.user.get_full_name()
+
+    @property
+    def email(self):
+        return self.user.email
+
+    @property
+    def role(self):
+        return self.user.role
 
 
 class Parent(models.Model):

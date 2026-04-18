@@ -49,6 +49,7 @@ from datetime import timedelta
         tags=['Parents - Admin']
     ),
 )
+
 class ParentsViewSet(viewsets.ModelViewSet):
     """
     ViewSet for admin to manage all parents.
@@ -60,7 +61,7 @@ class ParentsViewSet(viewsets.ModelViewSet):
     - DELETE /api/accounts/parents/{id}/ - Delete parent
     """
     
-    permission_classes = [permissions.IsAuthenticated, IsAdmin]
+    permission_classes = [permissions.IsAuthenticated, IsParentOrAdmin]
     # pagination_class = StandardPagination
     
     def get_queryset(self):
@@ -185,40 +186,11 @@ class ParentProfileViewSet(viewsets.GenericViewSet):
         return get_object_or_404(Parent, user=self.request.user)
     
     def list(self, request, *args, **kwargs):
-        """
-        List all parents (admin only).
-        Supports filtering by search, status, and relationship.
-        """
-        queryset = self.get_queryset()
-        
-        # Apply search filter
-        search = request.query_params.get('search', None)
-        if search:
-            queryset = queryset.filter(
-                Q(user__first_name__icontains=search) |
-                Q(user__last_name__icontains=search) |
-                Q(user__email__icontains=search) |
-                Q(phone__icontains=search)
-            )
-        
-        # Apply relationship filter
-        relationship = request.query_params.get('relationship', None)
-        if relationship:
-            queryset = queryset.filter(relationship=relationship)
-        
-        # Apply ordering
-        ordering = request.query_params.get('ordering', '-user__date_joined')
-        queryset = queryset.order_by(ordering)
-        
-        # Paginate
-        page = self.paginate_queryset(queryset)
-        if page is not None:
-            serializer = self.get_serializer(page, many=True)
-            return self.get_paginated_response(serializer.data)
-        
-        serializer = self.get_serializer(queryset, many=True)
+        """Get current parent's profile (no ID needed)"""
+        instance = self.get_object()
+        serializer = self.get_serializer(instance)
         return Response(serializer.data)
-    
+   
     def retrieve(self, request, *args, **kwargs):
         """Get parent profile"""
         instance = self.get_object()
@@ -320,6 +292,7 @@ class ParentChildrenViewSet(viewsets.ModelViewSet):
         # Select related to optimize queries (no prefetch_related needed for ForeignKey)
         return queryset.select_related('user', 'parent__user')
     
+        
     def get_serializer_class(self):
         """Return appropriate serializer based on action"""
         if self.action == 'create':

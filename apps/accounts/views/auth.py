@@ -10,10 +10,7 @@ from django_rest_passwordreset.views import ResetPasswordRequestToken
 from django_rest_passwordreset.serializers import EmailSerializer
 from apps.accounts.email_utils import send_verification_email, verify_email_token
 from django.conf import settings
-
-
-
-
+from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 from apps.accounts.serializers.auth_serializers import (
     CustomTokenObtainPairSerializer,
     RegisterSerializer,
@@ -22,7 +19,9 @@ from apps.accounts.serializers.auth_serializers import (
     TeacherProfileSerializer,
     StudentProfileSerializer,
     ParentProfileSerializer,
-    StaffProfileSerializer
+    StaffProfileSerializer,
+    UserUpdateSerializer,
+    AdminProfileSerializer
 )
 
 User = get_user_model()
@@ -118,38 +117,49 @@ class ChangePasswordView(generics.GenericAPIView):
         return Response({'message': 'Password changed successfully'}, 
                       status=status.HTTP_200_OK)
 
+
 class ProfileView(generics.RetrieveAPIView):
     """Get user profile"""
     permission_classes = [IsAuthenticated]
     serializer_class = UserProfileSerializer
-    
+
     def get_object(self):
         return self.request.user
-    
+
     def retrieve(self, request, *args, **kwargs):
         user = self.get_object()
-        
-        # Return appropriate profile based on user type
+        context = self.get_serializer_context()
+
         if user.role == 'teacher' and hasattr(user, 'teacher_profile'):
-            serializer = TeacherProfileSerializer(user.teacher_profile)
+            serializer = TeacherProfileSerializer(user.teacher_profile, context=context)
+
         elif user.role == 'student' and hasattr(user, 'student_profile'):
-            serializer = StudentProfileSerializer(user.student_profile)
+            serializer = StudentProfileSerializer(user.student_profile, context=context)
+
         elif user.role == 'parent' and hasattr(user, 'parent_profile'):
-            serializer = ParentProfileSerializer(user.parent_profile)
+            serializer = ParentProfileSerializer(user.parent_profile, context=context)
+
         elif user.role == 'staff' and hasattr(user, 'staff_profile'):
-            serializer = StaffProfileSerializer(user.staff_profile)
+            serializer = StaffProfileSerializer(user.staff_profile, context=context)
+
         else:
             serializer = self.get_serializer(user)
-        
+
         return Response(serializer.data)
+
 
 class UpdateProfileView(generics.UpdateAPIView):
     """Update user profile"""
     permission_classes = [IsAuthenticated]
-    serializer_class = UserProfileSerializer
+    serializer_class = UserUpdateSerializer
+    parser_classes = [MultiPartParser, FormParser, JSONParser]
     
     def get_object(self):
         return self.request.user
+    
+    def update(self, request, *args, **kwargs):
+        kwargs['partial'] = True  
+        return super().update(request, *args, **kwargs)
 
 class ForgotPasswordView(generics.GenericAPIView):
     """Request password reset email"""

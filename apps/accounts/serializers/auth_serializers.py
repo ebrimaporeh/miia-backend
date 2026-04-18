@@ -11,26 +11,34 @@ User = get_user_model()
 class UserProfileSerializer(serializers.ModelSerializer):
     """Serializer for user profile - ONLY basic user info"""
     name = serializers.SerializerMethodField()
-    firstName = serializers.CharField(source='first_name', read_only=True)
-    lastName = serializers.CharField(source='last_name', read_only=True)
-    role = serializers.CharField(source='role', read_only=True)
+    first_name = serializers.CharField(read_only=True)
+    last_name = serializers.CharField(read_only=True)
+    role = serializers.CharField(read_only=True)
     permissions = serializers.SerializerMethodField()
+    avatar = serializers.SerializerMethodField()
     
     class Meta:
         model = User
         fields = [
-            'id', 'email', 'name', 'firstName', 'lastName', 
-            'role', 'phone', 'profile_picture', 'status', 
-            'date_joined', 
+            'id', 'email', 'name', 'first_name', 'last_name', 
+            'role', 'phone', 'avatar', 'address','date_joined', 'permissions',
+             
         ]
         read_only_fields = ('id', 'email', 'role', 'date_joined')
     
-    # Keep these methods as they are
     def get_name(self, obj):
         return obj.get_full_name() or obj.email
     
     def get_status(self, obj):
         return 'active' if obj.is_active else 'inactive'
+    
+    def get_avatar(self, obj):
+        request = self.context.get('request')
+        if obj.avatar:
+            if request:
+                return request.build_absolute_uri(obj.avatar.url)
+            return obj.avatar.url
+        return None
     
     def get_permissions(self, obj):
         # Keep this method as is
@@ -66,78 +74,87 @@ class RoleProfileSerializer(serializers.Serializer):
         
         return None
 
+
 class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
-    """Custom JWT serializer that includes user data and profile"""
-    username_field = "email"
+    """Custom JWT serializer that returns minimal token + rich user response"""
     
+    username_field = "email"
+
     @classmethod
     def get_token(cls, user):
         token = super().get_token(user)
-        
-        # Add custom claims to token (for JWT payload)
-        token['role'] = user.role
-        token['email'] = user.email
-        token['first_name'] = user.first_name
-        token['last_name'] = user.last_name
-        
-        # Add profile info to token claims if available
-        if user.role == 'parent' and hasattr(user, 'parent_profile'):
-            token['profile'] = {
-                'relationship': user.parent_profile.relationship,
-                'occupation': user.parent_profile.occupation,
-                'phone': user.parent_profile.phone,
-                'alternate_phone': user.parent_profile.alternate_phone,
-                'address': user.parent_profile.address,
-                'children_count': user.parent_profile.children.count(),
-            }
-        elif user.role == 'teacher' and hasattr(user, 'teacher_profile'):
-            token['profile'] = {
-                'employee_id': user.teacher_profile.employee_id,
-                'qualification': user.teacher_profile.qualification,
-                'specialization': user.teacher_profile.specialization,
-                'department': user.teacher_profile.department,
-                'position': user.teacher_profile.position,
-            }
-        elif user.role == 'student' and hasattr(user, 'student_profile'):
-            token['profile'] = {
-                'student_id': user.student_profile.student_id,
-                # 'date_of_birth': user.student_profile.date_of_birth,
-                'gender': user.student_profile.gender,
-                # 'enrollment_date': user.student_profile.enrollment_date,
-                'status': user.student_profile.status,
-                'performance': user.student_profile.performance,
-                'guardian_name': user.student_profile.guardian_name,
-                'guardian_phone': user.student_profile.guardian_phone,
-                'guardian_email': user.student_profile.guardian_email,
-            }
-        elif user.role == 'staff' and hasattr(user, 'staff_profile'):
-            token['profile'] = {
-                'staff_id': user.staff_profile.staff_id,
-                'department': user.staff_profile.department,
-                'position': user.staff_profile.position,
-            }
-        
+
+        #  Keep JWT minimal (only identity + auth metadata)
+        token["role"] = user.role
+        token["email"] = user.email
+        token["first_name"] = user.first_name
+        token["last_name"] = user.last_name
+
         return token
-    
+
     def validate(self, attrs):
         data = super().validate(attrs)
-        
-        # Add user data to response body
-        data['user'] = UserProfileSerializer(self.user).data
-        
-        # Add role-specific profile to response body (NOT to token)
-        profile_serializer = RoleProfileSerializer()
-        profile_data = profile_serializer.to_representation(self.user)
-        if profile_data:
-            data['profile'] = profile_data
-        
+
+        user = self.user
+
+        #  Always include full user profile in response body
+        data["user"] = UserProfileSerializer(
+            user,
+            context=self.context
+        ).data
+
+        #  Attach role-based profile (response only, NOT token)
+        data["profile"] = self.get_role_profile(user)
+
         return data
+
+    def get_role_profile(self, user):
+        """Return role-specific profile data safely"""
+
+        if user.role == "student" and hasattr(user, "student_profile"):
+            return {
+                "student_id": user.student_profile.student_id,
+                "gender": user.student_profile.gender,
+                "status": user.student_profile.status,
+                "performance": user.student_profile.performance,
+                "guardian_name": user.student_profile.guardian_name,
+                "guardian_phone": user.student_profile.guardian_phone,
+                "guardian_email": user.student_profile.guardian_email,
+            }
+
+        if user.role == "parent" and hasattr(user, "parent_profile"):
+            return {
+                "relationship": user.parent_profile.relationship,
+                "occupation": user.parent_profile.occupation,
+                "phone": user.parent_profile.phone,
+                "alternate_phone": user.parent_profile.alternate_phone,
+                "address": user.parent_profile.address,
+                "children_count": user.parent_profile.children.count(),
+            }
+
+        if user.role == "teacher" and hasattr(user, "teacher_profile"):
+            return {
+                "employee_id": user.teacher_profile.employee_id,
+                "qualification": user.teacher_profile.qualification,
+                "specialization": user.teacher_profile.specialization,
+                "department": user.teacher_profile.department,
+                "position": user.teacher_profile.position,
+            }
+
+        if user.role == "staff" and hasattr(user, "staff_profile"):
+            return {
+                "staff_id": user.staff_profile.staff_id,
+                "department": user.staff_profile.department,
+                "position": user.staff_profile.position,
+            }
+
+        return None
 
 class UserUpdateSerializer(serializers.ModelSerializer):
     """Serializer for updating user information"""
     class Meta:
         model = User
-        fields = ('first_name', 'last_name', 'email', 'phone', 'profile_picture')
+        fields = ('first_name', 'last_name', 'email', 'phone', 'avatar', 'address')
     
     def validate_email(self, value):
         """Validate email uniqueness if changed"""
@@ -215,60 +232,103 @@ class ChangePasswordSerializer(serializers.Serializer):
             raise serializers.ValidationError({"new_password": "Password fields didn't match."})
         return attrs
 
-class UserProfileSerializer(serializers.ModelSerializer):
-    """Serializer for user profile with permissions"""
+
+class AdminProfileSerializer(serializers.ModelSerializer):
+    """Serializer for admin profile"""
+
     name = serializers.SerializerMethodField()
-    firstName = serializers.CharField(source='first_name', read_only=True)
-    lastName = serializers.CharField(source='last_name', read_only=True)
-    role = serializers.CharField(read_only=True)
     permissions = serializers.SerializerMethodField()
-    
+    avatar = serializers.SerializerMethodField()
+
     class Meta:
         model = User
         fields = [
-            'id', 'email', 'name', 'firstName', 'lastName', 
-            'role', 'phone', 'profile_picture', 
-            'date_joined', 'permissions'
+            'id',
+            'email',
+            'name',
+            'first_name',
+            'last_name',
+            'role',
+            'phone',
+            'avatar',
+            'address',
+            'date_joined',
+            'permissions',
         ]
-        read_only_fields = ('id', 'email', 'role', 'date_joined')
-    
+
     def get_name(self, obj):
         return obj.get_full_name() or obj.email
-    
-    def get_status(self, obj):
-        return 'active' if obj.is_active else 'inactive'
-    
+
+    def get_avatar(self, obj):
+        request = self.context.get('request')
+        if obj.avatar:
+            return request.build_absolute_uri(obj.avatar.url) if request else obj.avatar.url
+        return None
+
     def get_permissions(self, obj):
-        """Get all permissions from user model"""
-        return obj.get_permissions_list()
+        if not obj.is_authenticated:
+            return []
+
+        perms = set()
+
+        for group in obj.groups.all():
+            for perm in group.permissions.all():
+                perms.add(perm.codename)
+
+        if obj.role == "admin":
+            from django.contrib.auth.models import Permission
+            all_perms = Permission.objects.values_list('codename', flat=True)
+            perms.update(all_perms)
+
+        return list(perms)
+
 
 class TeacherProfileSerializer(serializers.ModelSerializer):
     """Serializer for teacher profile"""
-   
+    user = UserProfileSerializer(read_only=True)
     
     class Meta:
         model = Teacher
-        fields = ( 'employee_id', 
-                 'qualification', 'specialization', 'joining_date')
+        fields = ('user', 'employee_id', 
+                 'qualification', 'specialization', 'joining_date', 'department', 'position')
 
-class StudentProfileSerializer(serializers.ModelSerializer):
-    """Serializer for student profile"""
-    
+class ChildStudentSerializer(serializers.ModelSerializer):
+    user = UserProfileSerializer(read_only=True)
+
     class Meta:
         model = Student
-        fields = ('student_id', 
-                 'enrollment_date', 'guardian_name', 'guardian_phone', 'guardian_email')
+        fields = ('student_id', 'user')
 
 class ParentProfileSerializer(serializers.ModelSerializer):
     """Serializer for parent profile"""
-  
+
+    children = ChildStudentSerializer(many=True, read_only=True)
+    user = UserProfileSerializer(read_only=True)
+
     class Meta:
         model = Parent
-        fields = ( 'occupation', 
-                 'relationship', 'children')
+        fields = (
+            'user',
+            'occupation',
+            'relationship',
+            'children',
+        )
+
+class StudentProfileSerializer(serializers.ModelSerializer):
+    """Serializer for student profile"""
+
+    user = UserProfileSerializer(read_only=True)
+    parent = ParentProfileSerializer(read_only=True)
+    
+    class Meta:
+        model = Student
+        fields = ('user', 'student_id', 
+                 'enrollment_date', 'guardian_name', 'guardian_phone', 'guardian_email', 'date_of_birth', 'gender', 'parent')
 
 class StaffProfileSerializer(serializers.ModelSerializer):
     """Serializer for staff profile"""
+
+    
    
     class Meta:
         model = Staff

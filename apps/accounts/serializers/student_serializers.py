@@ -104,10 +104,10 @@ class StudentListSerializer(serializers.ModelSerializer):
         ]
     
     def get_avatar(self, obj):
-        if obj.user.profile_picture:
+        if obj.user.avatar:
             request = self.context.get('request')
             if request:
-                return request.build_absolute_uri(obj.user.profile_picture.url)
+                return request.build_absolute_uri(obj.user.avatar.url)
         return None
     
     def get_advisor_name(self, obj):
@@ -158,10 +158,10 @@ class StudentDetailSerializer(serializers.ModelSerializer):
         read_only_fields = ['created_at', 'updated_at', 'last_active']
     
     def get_avatar(self, obj):
-        if obj.user.profile_picture:
+        if obj.user.avatar:
             request = self.context.get('request')
             if request:
-                return request.build_absolute_uri(obj.user.profile_picture.url)
+                return request.build_absolute_uri(obj.user.avatar.url)
         return None
     
     def get_advisor_detail(self, obj):

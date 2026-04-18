@@ -9,7 +9,7 @@ from apps.accounts.views.parent_views import (
 
 router = DefaultRouter()
 # Register at root of /parent/ namespace for admin parent management
-router.register(r'', ParentsViewSet, basename='parents')  # /api/accounts/parent/
+router.register(r'admin', ParentsViewSet, basename='parents')  # /api/accounts/parent/admin
 router.register(r'profile', ParentProfileViewSet, basename='parent-profile')  # /api/accounts/parent/profile/
 router.register(r'children', ParentChildrenViewSet, basename='parent-children')  # /api/accounts/parent/children/
 

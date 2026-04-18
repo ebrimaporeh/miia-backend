@@ -9,7 +9,7 @@ from django.contrib.auth import get_user_model
 from datetime import timezone
 import datetime
 from apps.accounts.utils.student_utils import create_student
-
+from apps.core.serializers import AbsoluteImageField
 
 
 
@@ -115,6 +115,7 @@ class ParentChildSerializer(serializers.ModelSerializer):
     age = serializers.IntegerField(read_only=True)
     parent_name = serializers.SerializerMethodField()
     parent_email = serializers.SerializerMethodField()
+    avatar = AbsoluteImageField(source='user.avatar', read_only=True)
     
     class Meta:
         model = Student
@@ -126,6 +127,7 @@ class ParentChildSerializer(serializers.ModelSerializer):
             'date_of_birth',
             'age',
             'gender',
+            'avatar',
             'enrollment_date',
             'status',
             'performance',

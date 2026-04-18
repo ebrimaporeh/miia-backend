@@ -1,3 +1,4 @@
+# config/urls.py
 from django.contrib import admin
 from django.urls import path, include
 from django.conf import settings
@@ -36,8 +37,14 @@ urlpatterns = [
     path('api/accounts/', include('apps.accounts.urls')),
     path("api/academics/", include("apps.academics.urls")),
 
-    # Future modules
+    # Applications
+    # Applicant endpoints: /api/applications/
     path("api/applications/", include("apps.applications.urls")),
+    
+    # Admin endpoints: /api/admin/applications/
+    path("api/admin/applications/", include("apps.applications.admin_urls")),
+
+    # Future modules
     # path("api/schedule/", include("apps.schedule.urls")),
     # path("api/results/", include("apps.assessment.urls")),
     # path("api/attendance/", include("apps.attendance.urls")),

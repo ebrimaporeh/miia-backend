@@ -11,6 +11,9 @@ from django.db import models
 import logging
 from django.utils import timezone
 from datetime import timedelta
+from apps.core.pagination import CustomPageNumberPagination
+from django.db.models import Value
+from django.db.models.functions import Concat, Lower
 
 
 from apps.accounts.models import Student, StudentDocument, StudentNote
@@ -83,6 +86,7 @@ class StudentViewSet(viewsets.ModelViewSet):
     ).prefetch_related(
         'documents', 'student_notes'
     ).all()
+
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
     filterset_fields = {
         'status': ['exact', 'in'],
@@ -97,10 +101,11 @@ class StudentViewSet(viewsets.ModelViewSet):
         'guardian_name', 'guardian_email', 'phone'
     ]
     ordering_fields = [
-        'student_id', 'user__first_name', 'user__last_name', 
+        'student_id', 'user__first_name', 'user__last_name', 'full_name',
         'enrollment_date', 'status', 'performance' , 'created_at'
     ]
-    ordering = ['created_at']
+    ordering = ['-created_at']
+    pagination_class = CustomPageNumberPagination
 
     # ordering = ['user__first_name', 'user__last_name']
 
@@ -134,6 +139,10 @@ class StudentViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         """Filter queryset based on user permissions"""
         queryset = super().get_queryset()
+
+        queryset = queryset.annotate(
+            full_name=Concat('user__first_name', Value(' '), 'user__last_name')
+        )
         user = self.request.user
 
         # Apply search filter from query params
@@ -186,6 +195,8 @@ class StudentViewSet(viewsets.ModelViewSet):
             ).distinct()
 
         return queryset
+
+
 
 
     @extend_schema(
